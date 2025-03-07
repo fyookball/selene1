@@ -1,0 +1,37 @@
+{
+	"appId": "cash.selene.app",
+	"appName": "Selene Wallet",
+	"webDir": "dist",
+	"plugins": {
+		"Keyboard": {
+			"resize": "native"
+		},
+		"SplashScreen": {
+			"launchAutoHide": false
+		},
+		"CapacitorHttp": {
+			"enabled": true
+		}
+	},
+	"packageClassList": [
+		"BarcodeScanner",
+		"BarcodeScanner",
+		"AppPlugin",
+		"CAPCameraPlugin",
+		"ClipboardPlugin",
+		"DevicePlugin",
+		"DialogPlugin",
+		"FilesystemPlugin",
+		"HapticsPlugin",
+		"KeyboardPlugin",
+		"CAPNetworkPlugin",
+		"PreferencesPlugin",
+		"SharePlugin",
+		"SplashScreenPlugin",
+		"NativeBiometric",
+		"NativeBiometric",
+		"SecureStoragePlugin",
+		"SecureStoragePlugin",
+		"TorboarPlugin"
+	]
+}

@@ -1,0 +1,1 @@
+import{j as e,__tla as a}from"./index-D3zsSM2q.js";let t,r=Promise.all([(()=>{try{return a}catch{}})()]).then(async()=>{t=function({src:l=""}){return e.jsx("div",{className:"h-full",children:e.jsx("iframe",{src:l,title:"Embedded Web Page",width:"100%",height:"100%",allowFullScreen:!0})})}});export{t as E,r as __tla};

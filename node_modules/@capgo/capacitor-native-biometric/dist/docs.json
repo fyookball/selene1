@@ -1,0 +1,440 @@
+{
+  "api": {
+    "name": "NativeBiometricPlugin",
+    "slug": "nativebiometricplugin",
+    "docs": "",
+    "tags": [],
+    "methods": [
+      {
+        "name": "isAvailable",
+        "signature": "(options?: IsAvailableOptions | undefined) => any",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "",
+            "type": "IsAvailableOptions | undefined"
+          }
+        ],
+        "returns": "any",
+        "tags": [
+          {
+            "name": "param",
+            "text": "options"
+          },
+          {
+            "name": "returns"
+          },
+          {
+            "name": "memberof",
+            "text": "NativeBiometricPlugin"
+          },
+          {
+            "name": "since",
+            "text": "1.0.0"
+          }
+        ],
+        "docs": "Checks if biometric authentication hardware is available.",
+        "complexTypes": [
+          "IsAvailableOptions",
+          "AvailableResult"
+        ],
+        "slug": "isavailable"
+      },
+      {
+        "name": "verifyIdentity",
+        "signature": "(options?: BiometricOptions | undefined) => any",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "",
+            "type": "BiometricOptions | undefined"
+          }
+        ],
+        "returns": "any",
+        "tags": [
+          {
+            "name": "param",
+            "text": "options"
+          },
+          {
+            "name": "returns"
+          },
+          {
+            "name": "memberof",
+            "text": "NativeBiometricPlugin"
+          },
+          {
+            "name": "since",
+            "text": "1.0.0"
+          }
+        ],
+        "docs": "Prompts the user to authenticate with biometrics.",
+        "complexTypes": [
+          "BiometricOptions"
+        ],
+        "slug": "verifyidentity"
+      },
+      {
+        "name": "getCredentials",
+        "signature": "(options: GetCredentialOptions) => any",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "",
+            "type": "GetCredentialOptions"
+          }
+        ],
+        "returns": "any",
+        "tags": [
+          {
+            "name": "param",
+            "text": "options"
+          },
+          {
+            "name": "returns"
+          },
+          {
+            "name": "memberof",
+            "text": "NativeBiometricPlugin"
+          },
+          {
+            "name": "since",
+            "text": "1.0.0"
+          }
+        ],
+        "docs": "Gets the stored credentials for a given server.",
+        "complexTypes": [
+          "GetCredentialOptions",
+          "Credentials"
+        ],
+        "slug": "getcredentials"
+      },
+      {
+        "name": "setCredentials",
+        "signature": "(options: SetCredentialOptions) => any",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "",
+            "type": "SetCredentialOptions"
+          }
+        ],
+        "returns": "any",
+        "tags": [
+          {
+            "name": "param",
+            "text": "options"
+          },
+          {
+            "name": "returns"
+          },
+          {
+            "name": "memberof",
+            "text": "NativeBiometricPlugin"
+          },
+          {
+            "name": "since",
+            "text": "1.0.0"
+          }
+        ],
+        "docs": "Stores the given credentials for a given server.",
+        "complexTypes": [
+          "SetCredentialOptions"
+        ],
+        "slug": "setcredentials"
+      },
+      {
+        "name": "deleteCredentials",
+        "signature": "(options: DeleteCredentialOptions) => any",
+        "parameters": [
+          {
+            "name": "options",
+            "docs": "",
+            "type": "DeleteCredentialOptions"
+          }
+        ],
+        "returns": "any",
+        "tags": [
+          {
+            "name": "param",
+            "text": "options"
+          },
+          {
+            "name": "returns"
+          },
+          {
+            "name": "memberof",
+            "text": "NativeBiometricPlugin"
+          },
+          {
+            "name": "since",
+            "text": "1.0.0"
+          }
+        ],
+        "docs": "Deletes the stored credentials for a given server.",
+        "complexTypes": [
+          "DeleteCredentialOptions"
+        ],
+        "slug": "deletecredentials"
+      }
+    ],
+    "properties": []
+  },
+  "interfaces": [
+    {
+      "name": "IsAvailableOptions",
+      "slug": "isavailableoptions",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "useFallback",
+          "tags": [],
+          "docs": "Specifies if should fallback to passcode authentication if biometric authentication is not available.",
+          "complexTypes": [],
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "name": "AvailableResult",
+      "slug": "availableresult",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "isAvailable",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "boolean"
+        },
+        {
+          "name": "biometryType",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [
+            "BiometryType"
+          ],
+          "type": "BiometryType"
+        },
+        {
+          "name": "errorCode",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "number | undefined"
+        }
+      ]
+    },
+    {
+      "name": "BiometricOptions",
+      "slug": "biometricoptions",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "reason",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string | undefined"
+        },
+        {
+          "name": "title",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string | undefined"
+        },
+        {
+          "name": "subtitle",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string | undefined"
+        },
+        {
+          "name": "description",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string | undefined"
+        },
+        {
+          "name": "negativeButtonText",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string | undefined"
+        },
+        {
+          "name": "useFallback",
+          "tags": [],
+          "docs": "Specifies if should fallback to passcode authentication if biometric authentication fails.",
+          "complexTypes": [],
+          "type": "boolean | undefined"
+        },
+        {
+          "name": "fallbackTitle",
+          "tags": [],
+          "docs": "Only for iOS.\nSet the text for the fallback button in the authentication dialog.\nIf this property is not specified, the default text is set by the system.",
+          "complexTypes": [],
+          "type": "string | undefined"
+        },
+        {
+          "name": "maxAttempts",
+          "tags": [
+            {
+              "text": "1",
+              "name": "default"
+            }
+          ],
+          "docs": "Only for Android.\nSet a maximum number of attempts for biometric authentication. The maximum allowed by android is 5.",
+          "complexTypes": [],
+          "type": "number | undefined"
+        }
+      ]
+    },
+    {
+      "name": "GetCredentialOptions",
+      "slug": "getcredentialoptions",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "server",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Credentials",
+      "slug": "credentials",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "username",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string"
+        },
+        {
+          "name": "password",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "SetCredentialOptions",
+      "slug": "setcredentialoptions",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "username",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string"
+        },
+        {
+          "name": "password",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string"
+        },
+        {
+          "name": "server",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "DeleteCredentialOptions",
+      "slug": "deletecredentialoptions",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "server",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "enums": [
+    {
+      "name": "BiometryType",
+      "slug": "biometrytype",
+      "members": [
+        {
+          "name": "NONE",
+          "value": "0",
+          "tags": [],
+          "docs": ""
+        },
+        {
+          "name": "TOUCH_ID",
+          "value": "1",
+          "tags": [],
+          "docs": ""
+        },
+        {
+          "name": "FACE_ID",
+          "value": "2",
+          "tags": [],
+          "docs": ""
+        },
+        {
+          "name": "FINGERPRINT",
+          "value": "3",
+          "tags": [],
+          "docs": ""
+        },
+        {
+          "name": "FACE_AUTHENTICATION",
+          "value": "4",
+          "tags": [],
+          "docs": ""
+        },
+        {
+          "name": "IRIS_AUTHENTICATION",
+          "value": "5",
+          "tags": [],
+          "docs": ""
+        },
+        {
+          "name": "MULTIPLE",
+          "value": "6",
+          "tags": [],
+          "docs": ""
+        }
+      ]
+    }
+  ],
+  "typeAliases": [],
+  "pluginConfigs": []
+}

@@ -1,0 +1,3 @@
+Selene Wallet adalah aplikasi dompet yang cepat, sederhana, dan aman untuk cryptocurrency Bitcoin Cash (BCH).
+
+Kami memenuhi misi menjadikan Bitcoin Cash (BCH) sebagai mata uang cadangan global dengan membangun dompet yang ramping, kuat, dan ramah pengguna yang menjadikan bergabung dengan ekonomi BCH semudah dan semenarik mungkin.

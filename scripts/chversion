@@ -1,0 +1,61 @@
+#!/bin/sh
+# Execute from project root!
+
+CURRENT_VERSION=$(sed -e 's/.*"version": "\([^"]*\)".*/\1/' package.json)
+
+increment_release() {
+    local year_month=$(echo $CURRENT_VERSION | cut -d. -f1-2)
+    local current_release=$(echo $CURRENT_VERSION | cut -d. -f3)
+
+    if [ "$year_month" != "$(date +%Y.%m)" ]; then
+        echo 0
+    else
+        echo $((10#$current_release + 1))
+    fi
+}
+
+update_package_version() {
+    local version=$1
+    sed -i.bak "s/\"version\": \".*\"/\"version\": \"$version\"/" package.json
+}
+
+update_android_version() {
+    local version=$1
+    local version_code=$2
+    sed -i.bak "s/versionName \"[^\"]*\"/versionName \"$version\"/" android/app/build.gradle && rm -f android/app/build.gradle.bak
+    sed -i.bak "s/versionCode [0-9]*/versionCode $version_code/" android/app/build.gradle && rm -f android/app/build.gradle.bak
+}
+
+update_ios_version() {
+    local version=$1
+    local version_code=$2
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" ios/App/App/Info.plist
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $version_code" ios/App/App/Info.plist
+}
+
+
+if [ $# -eq 0 ]; then
+    RELEASE_NUM=$(increment_release)
+    VERSION=$(date +%Y.%m).$(printf "%02d" $RELEASE_NUM)
+    VERSION_CODE=$(echo $VERSION | sed 's/\.//g' | cut -c 3-6)$(printf "%01d\n" $RELEASE_NUM)
+else
+    VERSION=$1
+    VERSION_CODE=$(echo $VERSION | sed 's/\.//g' | cut -c 3-6)$(printf "%01d\n" $((10#$(echo $VERSION | cut -d. -f3))))
+fi
+
+if [ -n "$CI_JOB_ID" ]; then
+    VERSION_CODE="$VERSION_CODE$CI_JOB_ID"
+fi
+
+
+update_package_version $VERSION
+update_android_version $VERSION $VERSION_CODE
+update_ios_version $VERSION $VERSION_CODE
+
+git add package.json
+git add android/app/build.gradle
+git add ios/App/App/Info.plist
+
+git commit -m "bump version to $VERSION ($VERSION_CODE)"
+
+echo "Version updated to $VERSION, Version Code: $VERSION_CODE"

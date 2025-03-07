@@ -1,0 +1,33 @@
+{
+  "configurations" : [
+    {
+      "id" : "08720DDF-50FF-47CE-BB58-49416A4910EA",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:App.xcodeproj",
+      "identifier" : "504EC3031FED79650016851F",
+      "name" : "App"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "skippedTests" : [
+        "SeleneWalletUITests\/testLaunchPerformance()",
+        "SeleneWalletUITestsLaunchTests\/testLaunch()"
+      ],
+      "target" : {
+        "containerPath" : "container:App.xcodeproj",
+        "identifier" : "8381F6912C86171A00ED0F5D",
+        "name" : "SeleneWalletUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

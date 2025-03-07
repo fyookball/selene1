@@ -1,0 +1,3 @@
+Selene Wallet is a fast, simple, secure wallet app for the Bitcoin Cash (BCH) cryptocurrency.
+
+We are fulfilling the mission of making Bitcoin Cash (BCH) the global reserve currency by building a sleek, robust, user-friendly wallet that makes joining the BCH economy as easy and compelling as possible.

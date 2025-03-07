@@ -1,0 +1,308 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="cash.selene.app"
+4    android:versionCode="24116"
+5    android:versionName="2024.11.6" >
+6
+7    <uses-sdk
+7-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:56:5-73
+8        android:minSdkVersion="22"
+9        android:targetSdkVersion="34" />
+10
+11    <!-- Permissions -->
+12
+13    <uses-permission android:name="android.permission.INTERNET" />
+13-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:45:5-67
+13-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:45:22-64
+14    <uses-permission android:name="android.permission.CAMERA" />
+14-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:46:5-65
+14-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:46:22-62
+15    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+15-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:47:5-76
+15-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:47:22-73
+16    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+16-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:48:5-80
+16-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:48:22-77
+17    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+17-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:49:5-81
+17-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:49:22-78
+18
+19    <!-- Allows unlocking your device and activating its screen so UI tests can succeed -->
+20    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+20-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:43:5-74
+20-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:43:22-72
+21    <uses-permission android:name="android.permission.WAKE_LOCK" />
+21-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:44:5-67
+21-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:44:22-65
+22
+23    <!-- Allows changing locales -->
+24    <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
+24-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:47:5-79
+24-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:47:22-76
+25
+26    <!--
+27    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+28    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+29    -->
+30    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+30-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:54:5-72
+30-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:54:22-69
+31
+32    <queries>
+32-->[:capacitor-camera] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capacitor/camera/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-11:15
+33        <intent>
+33-->[:capacitor-camera] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capacitor/camera/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:9-10:18
+34            <action android:name="android.media.action.IMAGE_CAPTURE" />
+34-->[:capacitor-camera] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capacitor/camera/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:13-73
+34-->[:capacitor-camera] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capacitor/camera/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:21-70
+35        </intent>
+36    </queries>
+37
+38    <uses-permission android:name="android.permission.VIBRATE" />
+38-->[:capacitor-haptics] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capacitor/haptics/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-66
+38-->[:capacitor-haptics] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capacitor/haptics/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:22-63
+39    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- suppress DeprecatedClassUsageInspection -->
+39-->[:capacitor-network] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capacitor/network/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-79
+39-->[:capacitor-network] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capacitor/network/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:22-76
+40    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+40-->[androidx.biometric:biometric:1.1.0] /home/owner/.gradle/caches/transforms-3/8e7cf206d3d7c01ace3142f6ba33bb44/transformed/biometric-1.1.0/AndroidManifest.xml:27:5-74
+40-->[androidx.biometric:biometric:1.1.0] /home/owner/.gradle/caches/transforms-3/8e7cf206d3d7c01ace3142f6ba33bb44/transformed/biometric-1.1.0/AndroidManifest.xml:27:22-71
+41
+42    <permission
+42-->[androidx.core:core:1.12.0] /home/owner/.gradle/caches/transforms-3/fc5364d6e65b4770bdc78f2e7f59212c/transformed/core-1.12.0/AndroidManifest.xml:22:5-24:47
+43        android:name="cash.selene.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+43-->[androidx.core:core:1.12.0] /home/owner/.gradle/caches/transforms-3/fc5364d6e65b4770bdc78f2e7f59212c/transformed/core-1.12.0/AndroidManifest.xml:23:9-81
+44        android:protectionLevel="signature" />
+44-->[androidx.core:core:1.12.0] /home/owner/.gradle/caches/transforms-3/fc5364d6e65b4770bdc78f2e7f59212c/transformed/core-1.12.0/AndroidManifest.xml:24:9-44
+45
+46    <uses-permission android:name="cash.selene.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" /> <!-- Don't require camera, as this requires a rear camera. This allows it to work on the Nexus 7 -->
+46-->[androidx.core:core:1.12.0] /home/owner/.gradle/caches/transforms-3/fc5364d6e65b4770bdc78f2e7f59212c/transformed/core-1.12.0/AndroidManifest.xml:26:5-97
+46-->[androidx.core:core:1.12.0] /home/owner/.gradle/caches/transforms-3/fc5364d6e65b4770bdc78f2e7f59212c/transformed/core-1.12.0/AndroidManifest.xml:26:22-94
+47    <uses-feature
+47-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:25:5-27:36
+48        android:name="android.hardware.camera"
+48-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:26:9-47
+49        android:required="false" />
+49-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:27:9-33
+50    <uses-feature
+50-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:28:5-30:36
+51        android:name="android.hardware.camera.front"
+51-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:29:9-53
+52        android:required="false" /> <!-- TODO replace above two with next line after Android 4.2 -->
+52-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:30:9-33
+53    <!-- <uses-feature android:name="android.hardware.camera.any"/> -->
+54    <uses-feature
+54-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:33:5-35:36
+55        android:name="android.hardware.camera.autofocus"
+55-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:34:9-57
+56        android:required="false" />
+56-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:35:9-33
+57    <uses-feature
+57-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:36:5-38:36
+58        android:name="android.hardware.camera.flash"
+58-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:37:9-53
+59        android:required="false" />
+59-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:38:9-33
+60    <uses-feature
+60-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:39:5-41:36
+61        android:name="android.hardware.screen.landscape"
+61-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:40:9-57
+62        android:required="false" />
+62-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:41:9-33
+63    <uses-feature
+63-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:42:5-44:36
+64        android:name="android.hardware.wifi"
+64-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:43:9-45
+65        android:required="false" />
+65-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:44:9-33
+66
+67    <application
+67-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:3:5-41:19
+68        android:allowBackup="true"
+68-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:4:9-35
+69        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+69-->[androidx.core:core:1.12.0] /home/owner/.gradle/caches/transforms-3/fc5364d6e65b4770bdc78f2e7f59212c/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
+70        android:debuggable="true"
+71        android:extractNativeLibs="true"
+72        android:hardwareAccelerated="true"
+72-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:9:9-43
+73        android:icon="@mipmap/ic_launcher"
+73-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:5:9-43
+74        android:label="@string/app_name"
+74-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:6:9-41
+75        android:roundIcon="@mipmap/ic_launcher_round"
+75-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:7:9-54
+76        android:supportsRtl="true"
+76-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:8:9-35
+77        android:theme="@style/AppTheme" >
+77-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:10:9-40
+78        <activity
+78-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:11:9-32:20
+79            android:name="cash.selene.app.MainActivity"
+79-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:13:13-56
+80            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+80-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:12:13-129
+81            android:exported="true"
+81-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:18:13-36
+82            android:label="@string/title_activity_main"
+82-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:14:13-56
+83            android:launchMode="singleTask"
+83-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:16:13-44
+84            android:screenOrientation="portrait"
+84-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:17:13-49
+85            android:theme="@style/AppTheme.NoActionBarLaunch" >
+85-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:15:13-62
+86            <intent-filter>
+86-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:19:13-22:29
+87                <action android:name="android.intent.action.MAIN" />
+87-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:20:17-69
+87-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:20:25-66
+88
+89                <category android:name="android.intent.category.LAUNCHER" />
+89-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:21:17-77
+89-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:21:27-74
+90            </intent-filter>
+91            <intent-filter>
+91-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:24:5-31:29
+92                <action android:name="android.intent.action.VIEW" />
+92-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:25:17-69
+92-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:25:25-66
+93
+94                <category android:name="android.intent.category.DEFAULT" />
+94-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:26:17-76
+94-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:26:27-73
+95                <category android:name="android.intent.category.BROWSABLE" />
+95-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:27:17-78
+95-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:27:27-75
+96
+97                <data android:scheme="bitcoincash" />
+97-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:29:17-54
+97-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:29:23-51
+98                <data android:scheme="bch-wif" />
+98-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:29:17-54
+98-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/main/AndroidManifest.xml:29:23-51
+99            </intent-filter>
+100        </activity>
+101
+102        <provider
+103            android:name="androidx.core.content.FileProvider"
+103-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:26:13-62
+104            android:authorities="cash.selene.app.fileprovider"
+104-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:27:13-64
+105            android:exported="false"
+105-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:28:13-37
+106            android:grantUriPermissions="true" >
+106-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:29:13-47
+107            <meta-data
+107-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:30:13-112
+108                android:name="android.support.FILE_PROVIDER_PATHS"
+108-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:30:24-74
+109                android:resource="@xml/file_paths" />
+109-->/home/owner/gitwork16-selene/selene-wallet/android/app/src/debug/AndroidManifest.xml:30:75-109
+110        </provider>
+111
+112        <activity
+112-->[:capgo-capacitor-native-biometric] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capgo/capacitor-native-biometric/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:9-11:59
+113            android:name="ee.forgr.biometric.AuthActivity"
+113-->[:capgo-capacitor-native-biometric] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capgo/capacitor-native-biometric/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:13-59
+114            android:label="@string/title_activity_auth_activity"
+114-->[:capgo-capacitor-native-biometric] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capgo/capacitor-native-biometric/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:13-65
+115            android:theme="@style/AppTheme.Transparent" />
+115-->[:capgo-capacitor-native-biometric] /home/owner/gitwork16-selene/selene-wallet/node_modules/@capgo/capacitor-native-biometric/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-56
+116
+117        <provider
+117-->[androidx.emoji2:emoji2:1.2.0] /home/owner/.gradle/caches/transforms-3/edf129b69ed644c84a33f80368a22157/transformed/emoji2-1.2.0/AndroidManifest.xml:24:9-32:20
+118            android:name="androidx.startup.InitializationProvider"
+118-->[androidx.emoji2:emoji2:1.2.0] /home/owner/.gradle/caches/transforms-3/edf129b69ed644c84a33f80368a22157/transformed/emoji2-1.2.0/AndroidManifest.xml:25:13-67
+119            android:authorities="cash.selene.app.androidx-startup"
+119-->[androidx.emoji2:emoji2:1.2.0] /home/owner/.gradle/caches/transforms-3/edf129b69ed644c84a33f80368a22157/transformed/emoji2-1.2.0/AndroidManifest.xml:26:13-68
+120            android:exported="false" >
+120-->[androidx.emoji2:emoji2:1.2.0] /home/owner/.gradle/caches/transforms-3/edf129b69ed644c84a33f80368a22157/transformed/emoji2-1.2.0/AndroidManifest.xml:27:13-37
+121            <meta-data
+121-->[androidx.emoji2:emoji2:1.2.0] /home/owner/.gradle/caches/transforms-3/edf129b69ed644c84a33f80368a22157/transformed/emoji2-1.2.0/AndroidManifest.xml:29:13-31:52
+122                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+122-->[androidx.emoji2:emoji2:1.2.0] /home/owner/.gradle/caches/transforms-3/edf129b69ed644c84a33f80368a22157/transformed/emoji2-1.2.0/AndroidManifest.xml:30:17-75
+123                android:value="androidx.startup" />
+123-->[androidx.emoji2:emoji2:1.2.0] /home/owner/.gradle/caches/transforms-3/edf129b69ed644c84a33f80368a22157/transformed/emoji2-1.2.0/AndroidManifest.xml:31:17-49
+124            <meta-data
+124-->[androidx.lifecycle:lifecycle-process:2.6.1] /home/owner/.gradle/caches/transforms-3/ad1d5fe54414de1bd794d2967473b92a/transformed/lifecycle-process-2.6.1/AndroidManifest.xml:29:13-31:52
+125                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+125-->[androidx.lifecycle:lifecycle-process:2.6.1] /home/owner/.gradle/caches/transforms-3/ad1d5fe54414de1bd794d2967473b92a/transformed/lifecycle-process-2.6.1/AndroidManifest.xml:30:17-78
+126                android:value="androidx.startup" />
+126-->[androidx.lifecycle:lifecycle-process:2.6.1] /home/owner/.gradle/caches/transforms-3/ad1d5fe54414de1bd794d2967473b92a/transformed/lifecycle-process-2.6.1/AndroidManifest.xml:31:17-49
+127            <meta-data
+127-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:29:13-31:52
+128                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+128-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:30:17-85
+129                android:value="androidx.startup" />
+129-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:31:17-49
+130        </provider>
+131
+132        <uses-library
+132-->[androidx.window:window:1.0.0] /home/owner/.gradle/caches/transforms-3/27af96a94c32c82854c2053329e98b86/transformed/window-1.0.0/AndroidManifest.xml:25:9-27:40
+133            android:name="androidx.window.extensions"
+133-->[androidx.window:window:1.0.0] /home/owner/.gradle/caches/transforms-3/27af96a94c32c82854c2053329e98b86/transformed/window-1.0.0/AndroidManifest.xml:26:13-54
+134            android:required="false" />
+134-->[androidx.window:window:1.0.0] /home/owner/.gradle/caches/transforms-3/27af96a94c32c82854c2053329e98b86/transformed/window-1.0.0/AndroidManifest.xml:27:13-37
+135        <uses-library
+135-->[androidx.window:window:1.0.0] /home/owner/.gradle/caches/transforms-3/27af96a94c32c82854c2053329e98b86/transformed/window-1.0.0/AndroidManifest.xml:28:9-30:40
+136            android:name="androidx.window.sidecar"
+136-->[androidx.window:window:1.0.0] /home/owner/.gradle/caches/transforms-3/27af96a94c32c82854c2053329e98b86/transformed/window-1.0.0/AndroidManifest.xml:29:13-51
+137            android:required="false" />
+137-->[androidx.window:window:1.0.0] /home/owner/.gradle/caches/transforms-3/27af96a94c32c82854c2053329e98b86/transformed/window-1.0.0/AndroidManifest.xml:30:13-37
+138
+139        <receiver
+139-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:34:9-52:20
+140            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+140-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:35:13-76
+141            android:directBootAware="false"
+141-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:36:13-44
+142            android:enabled="true"
+142-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:37:13-35
+143            android:exported="true"
+143-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:38:13-36
+144            android:permission="android.permission.DUMP" >
+144-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:39:13-57
+145            <intent-filter>
+145-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:40:13-42:29
+146                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+146-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:41:17-91
+146-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:41:25-88
+147            </intent-filter>
+148            <intent-filter>
+148-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:43:13-45:29
+149                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+149-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:44:17-85
+149-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:44:25-82
+150            </intent-filter>
+151            <intent-filter>
+151-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:46:13-48:29
+152                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+152-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:47:17-88
+152-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:47:25-85
+153            </intent-filter>
+154            <intent-filter>
+154-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:49:13-51:29
+155                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+155-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:50:17-95
+155-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/owner/.gradle/caches/transforms-3/80f42f06cc29de8275f788c37b50c704/transformed/profileinstaller-1.3.0/AndroidManifest.xml:50:25-92
+156            </intent-filter>
+157        </receiver>
+158
+159        <activity
+159-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:47:9-53:63
+160            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+160-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:48:13-74
+161            android:clearTaskOnLaunch="true"
+161-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:49:13-45
+162            android:screenOrientation="sensorLandscape"
+162-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:50:13-56
+163            android:stateNotNeeded="true"
+163-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:51:13-42
+164            android:theme="@style/zxing_CaptureTheme"
+164-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:52:13-54
+165            android:windowSoftInputMode="stateAlwaysHidden" />
+165-->[com.journeyapps:zxing-android-embedded:4.3.0] /home/owner/.gradle/caches/transforms-3/7230234e615304a58bb0cb16e1394bea/transformed/zxing-android-embedded-4.3.0/AndroidManifest.xml:53:13-60
+166    </application>
+167
+168</manifest>

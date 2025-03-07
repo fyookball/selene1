@@ -1,0 +1,1 @@
+import{W as t,__tla as s}from"./index-BEjSkI0g.js";import"torboar";let e,l=Promise.all([(()=>{try{return s}catch{}})()]).then(async()=>{e=class extends t{async show(a){}async hide(a){}}});export{e as SplashScreenWeb,l as __tla};

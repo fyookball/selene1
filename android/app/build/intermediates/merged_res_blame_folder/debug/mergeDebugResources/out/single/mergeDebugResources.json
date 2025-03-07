@@ -1,0 +1,230 @@
+[
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-night-xxhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-night-xxhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-xxxhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-xxxhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-night-xhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-night-xhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-night-xxhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-night-xxhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-night_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-night/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable_ic_launcher_background.xml.flat",
+        "source": "cash.selene.app-main-49:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xhdpi_ic_launcher_background.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xhdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-xhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-xhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-xxhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-xxhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xxxhdpi_ic_launcher_foreground.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xxxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-mdpi_ic_launcher_background.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-mdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-mdpi_ic_launcher_foreground.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-mdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-ldpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-ldpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-night-hdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-night-hdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-ldpi_ic_launcher_foreground.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-ldpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xxhdpi_ic_launcher_foreground.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-night-mdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-night-mdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-hdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-hdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-mdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-mdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/xml_file_paths.xml.flat",
+        "source": "cash.selene.app-main-49:/xml/file_paths.xml"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-ldpi_ic_launcher.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-ldpi/ic_launcher.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xxxhdpi_ic_launcher_background.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xxxhdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-night-xxxhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-night-xxxhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-night-ldpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-night-ldpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-hdpi_ic_launcher_foreground.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-hdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-hdpi_ic_launcher_background.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-hdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "cash.selene.app-main-49:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xhdpi_ic_launcher_foreground.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-night-xhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-night-xhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-night-ldpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-night-ldpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-ldpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-ldpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-anydpi-v24_ic_launcher_foreground.xml.flat",
+        "source": "cash.selene.app-pngs-43:/drawable-anydpi-v24/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-xxhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-xxhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/layout_activity_main.xml.flat",
+        "source": "cash.selene.app-main-49:/layout/activity_main.xml"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-xxxhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-xxxhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "cash.selene.app-main-49:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-ldpi_ic_launcher_background.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-ldpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-xxhdpi_ic_launcher_background.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-xxhdpi/ic_launcher_background.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-hdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-hdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-xhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-xhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-mdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-mdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/xml_config.xml.flat",
+        "source": "cash.selene.app-main-49:/xml/config.xml"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/mipmap-ldpi_ic_launcher_round.png.flat",
+        "source": "cash.selene.app-main-49:/mipmap-ldpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-night-hdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-night-hdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-land-night-xxxhdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-land-night-xxxhdpi/splash.png"
+    },
+    {
+        "merged": "cash.selene.app-debug-47:/drawable-port-night-mdpi_splash.png.flat",
+        "source": "cash.selene.app-main-49:/drawable-port-night-mdpi/splash.png"
+    }
+]

@@ -1,0 +1,8 @@
+app_identifier("cash.selene.app") # The bundle identifier of your app
+apple_id("chris@xulu.tech") # Your Apple Developer Portal username
+
+itc_team_id("126397154") # App Store Connect Team ID
+team_id("M2M8ZMH23D") # Developer Portal Team ID
+
+# For more information about the Appfile, see:
+#     https://docs.fastlane.tools/advanced/#appfile

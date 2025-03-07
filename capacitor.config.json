@@ -1,0 +1,16 @@
+{
+  "appId": "cash.selene.app",
+  "appName": "Selene Wallet",
+  "webDir": "dist",
+  "plugins": {
+    "Keyboard": {
+      "resize": "native"
+    },
+    "SplashScreen": {
+      "launchAutoHide": false
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

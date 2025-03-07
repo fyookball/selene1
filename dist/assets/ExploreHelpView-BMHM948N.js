@@ -1,0 +1,1 @@
+import{j as e,S as s,__tla as a}from"./index-D3zsSM2q.js";import"torboar";let t,l=Promise.all([(()=>{try{return a}catch{}})()]).then(async()=>{t=function(){return e.jsx("div",{className:"p-1",children:e.jsxs("div",{className:"flex justify-center items-center text-xl font-bold",children:[e.jsx(s,{className:"w-12 mr-1"})," User Manual"]})})}});export{l as __tla,t as default};
