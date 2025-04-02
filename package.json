@@ -57,7 +57,9 @@
     "react-redux": "^9.0.4",
     "react-router": "^7.1.0",
     "react-vertical-timeline-component": "^3.6.0",
+    "selene-wallet": "file:",
     "sql.js": "^1.8.0",
+    "torboar": "./torboar",
     "use-long-press": "^3.1.5"
   },
   "devDependencies": {

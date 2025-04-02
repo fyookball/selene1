@@ -1,16 +1,31 @@
 import { App } from "@capacitor/app";
-import { createRoot } from "react-dom/client";
+import ReactDOM from "react-dom/client";
 import { SplashScreen } from "@capacitor/splash-screen";
+
+//import FusionService from "@/services/FusionService";
+
+// Import TOR capacitor pluign
+import { Torboar } from "torboar";
+
 import LogService from "@/services/LogService";
 import JanitorService from "@/services/JanitorService";
 import DatabaseService from "@/services/DatabaseService";
-import BcmrService from "@/services/BcmrService";
 import { redux_init, redux_post_init, redux_resume } from "@/redux";
 import Main from "@/Main";
 
 // Top-Level execution for entire app starts here!
 // eslint-disable-next-line react-refresh/only-export-components
 const Log = LogService("init");
+
+// initialize Torboar plugin
+async function initTorboar() {
+  try {
+    await Torboar.startTor();
+    console.log("Torboar started successfully");
+  } catch (err) {
+    console.error("Error starting Torboar:", err);
+  }
+}
 
 // big green START button for the whole app
 async function initialize_app() {
@@ -19,7 +34,10 @@ async function initialize_app() {
   await app_init();
   await post_init();
   Log.timeEnd("INIT");
-}
+
+  // Start Torboar (test for now)
+  initTorboar();
+} // end initialize_app()
 
 await initialize_app();
 
@@ -31,7 +49,7 @@ function app_init() {
   App.addListener("resume", app_resume);
   redux_init();
   Log.debug("render <Main>");
-  createRoot(document.getElementById("root")).render(<Main />);
+  ReactDOM.createRoot(document.getElementById("root")).render(<Main />);
 }
 
 // actions to perform before initializing app state or rendering UI
@@ -51,8 +69,10 @@ async function post_init() {
   await SplashScreen.hide();
   redux_post_init();
 
-  const Bcmr = BcmrService();
-  Bcmr.preloadMetadataRegistries();
+  queueMicrotask(() => {
+    const Janitor = JanitorService();
+    Janitor.purgeStaleData();
+  });
 }
 
 // actions to perform after app is resumed from sleep state

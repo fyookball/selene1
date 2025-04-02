@@ -21,9 +21,14 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven { url "https://raw.githubusercontent.com/guardianproject/gpmaven/master" } // Add For TOR
     }
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+
+
+
