@@ -1,3 +1,22 @@
+
+## Capacitor Plugin "Torboar" developer steps.
+
+1. git clone https://github.com/fyookball/selene1/
+2. cd selene1
+3. git checkout b2
+4. yarn install
+5. cd torboar
+6. yarn install
+7. yarn build
+8. cd ..
+9. yarn add file:./torboar
+10. yarn pretty
+11. yarn run build
+12. npx cap sync android
+13. npx cap run android
+14. After the emulator shows the wallet, open a new terminal and look for the output with adb logcat | grep -i "torboar"
+
+
 # Selene Wallet: Join the Cash Economy!
 
 [![Latest Release](https://git.xulu.tech/selene.cash/selene-wallet/-/badges/release.svg)](https://git.xulu.tech/selene.cash/selene-wallet/-/releases)
