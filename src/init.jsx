@@ -17,13 +17,24 @@ import Main from "@/Main";
 // eslint-disable-next-line react-refresh/only-export-components
 const Log = LogService("init");
 
-// initialize Torboar plugin
 async function initTorboar() {
   try {
     await Torboar.startTor();
     console.log("Torboar started successfully");
+
+    const res1 = await Torboar.makeRequestThroughCircuit({
+      circuitKey: "circuitA",
+      url: "http://google.com",
+    });
+    console.log("Circuit A response:", res1.response);
+
+    const res2 = await Torboar.makeRequestThroughCircuit({
+      circuitKey: "circuitB",
+      url: "http://chess.com",
+    });
+    console.log("Circuit B response:", res2.response);
   } catch (err) {
-    console.error("Error starting Torboar:", err);
+    console.error("Error using Torboar:", err);
   }
 }
 
