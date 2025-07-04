@@ -12,6 +12,8 @@ import { txHistoryReducer } from "./txHistory";
 import { exchangeRateReducer, fetchExchangeRates } from "./exchangeRates";
 import { triggerCheckIn } from "./stats";
 
+import { cashfusionInit } from "@/redux/fusion";
+
 const Log = LogService("redux");
 
 export const store = configureStore({
@@ -44,8 +46,13 @@ export function redux_init() {
 
 export function redux_post_init() {
   Log.debug("redux_post_init");
+  store.dispatch(walletConnectInit());
   store.dispatch(triggerCheckIn());
   store.dispatch(fetchExchangeRates(0));
+
+  console.log("About to dispatch cashfusionInit()");
+  store.dispatch(cashfusionInit());
+  console.log("Finished dispatching cashfusionInit()");
 }
 
 export function redux_resume() {

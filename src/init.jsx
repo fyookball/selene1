@@ -2,8 +2,6 @@ import { App } from "@capacitor/app";
 import ReactDOM from "react-dom/client";
 import { SplashScreen } from "@capacitor/splash-screen";
 
-//import FusionService from "@/services/FusionService";
-
 // Import TOR capacitor pluign
 import { Torboar } from "torboar";
 
@@ -11,6 +9,7 @@ import LogService from "@/services/LogService";
 import JanitorService from "@/services/JanitorService";
 import DatabaseService from "@/services/DatabaseService";
 import { redux_init, redux_post_init, redux_resume } from "@/redux";
+
 import Main from "@/Main";
 
 // Top-Level execution for entire app starts here!
@@ -20,7 +19,7 @@ const Log = LogService("init");
 async function initTorboar() {
   try {
     await Torboar.startTor();
-    console.log("Torboar started successfully");
+    console.log("Torboar started successfully from init.");
 
     const res1 = await Torboar.makeRequestThroughCircuit({
       circuitKey: "circuitA",
@@ -59,6 +58,7 @@ function app_init() {
   Log.log("* APP_INIT *");
   App.addListener("resume", app_resume);
   redux_init();
+
   Log.debug("render <Main>");
   ReactDOM.createRoot(document.getElementById("root")).render(<Main />);
 }
@@ -74,6 +74,7 @@ async function pre_init() {
   await Janitor.recoverWalletFiles();
 }
 
+// actions to perform after UI is rendered
 // actions to perform after UI is rendered
 async function post_init() {
   Log.log("* POST_INIT *");
