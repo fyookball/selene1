@@ -12,6 +12,8 @@ import { syncConnect, syncClearAddresses } from "@/redux/sync";
 
 import { ValidBchNetwork } from "@/util/electrum_servers";
 
+import { cashfusionInit } from "@/redux/fusion";
+
 import WalletManagerService, {
   WalletEntity,
 } from "@/services/WalletManagerService";
@@ -67,6 +69,18 @@ export const walletBoot = createAsyncThunk(
         server,
       })
     );
+
+    //kick off CashFusion subservice
+    try {
+      console.log(
+        "walletBoot: Dispatching cashfusionInit() with walletHash:",
+        wallet.walletHash
+      );
+      await thunkApi.dispatch(cashfusionInit(wallet.walletHash));
+      console.log("walletBoot: cashfusionInit() completed");
+    } catch (err) {
+      console.error("walletBoot: Error dispatching cashfusionInit:", err);
+    }
 
     return wallet;
   }

@@ -1,13 +1,8 @@
-//import { Torboar } from "torboar";
-
 // Manages a persistent FusionService that continuously checks
 // whether a new fusion round should start, and runs it safely (no overlap).
 
 import LogService from "@/services/LogService";
 import UtxoManagerService from "@/services/UtxoManagerService";
-
-import { store } from "@/redux";
-import { selectActiveWalletHash } from "../redux/wallet";
 
 const Log = LogService("FusionService");
 
@@ -29,9 +24,13 @@ export class FusionService {
   private _walletHash: string;
 
   private _utxoManager: ReturnType<typeof UtxoManagerService>;
+ 
+  private static _defaultMaxCoins = 10;
 
-  constructor() {
-    Log.log("FusionService instance created (constructor)");
+  constructor(walletHash: string) {
+    this._walletHash = walletHash;
+    this._utxoManager = UtxoManagerService(this._walletHash);
+    Log.log("FusionService initialized with walletHash:", this._walletHash);
   }
 
   public async start(): Promise<void> {
@@ -40,20 +39,10 @@ export class FusionService {
       return;
     }
 
-    try {
-      this._walletHash = selectActiveWalletHash(store.getState());
-      this._utxoManager = UtxoManagerService(this._walletHash);
-      Log.log("FusionService initialized with walletHash:", this._walletHash);
-    } catch (e) {
-      console.error("FusionService start() threw error:", e);
-      throw e;
-    }
-
     this._isRunning = true;
     this._shouldStopRequested = false;
     Log.log("FusionService started");
 
-    await this._grabWalletUtxos();
     this._scheduleNextRound();
   }
 
@@ -70,7 +59,7 @@ export class FusionService {
       }
 
       if (!this._currentRound) {
-        this._currentRound = FusionService._startFusionRound()
+        this._currentRound = this._startFusionRound()
           .catch((err) => Log.error("Fusion round failed", err))
           .finally(() => {
             this._currentRound = null;
@@ -86,16 +75,86 @@ export class FusionService {
     Log.log(`Grabbing wallet UTXOs for walletHash: ${this._walletHash}`);
 
     const coins = this._utxoManager.getWalletCoins() as Utxo[];
-
     const utxos = coins ?? [];
 
     Log.log(`Found ${utxos.length} UTXOs total`);
+
+    utxos.forEach((utxo, index) => {
+      Log.log(
+        `UTXO #${index + 1}:`,
+        `address=${utxo.address}, txid=${utxo.txid}, tx_pos=${utxo.tx_pos}, amount=${utxo.amount}, memo=${utxo.memo}`
+      );
+    });
+
     return utxos;
   }
 
-  private static async _startFusionRound(): Promise<void> {
+  private static _selectRandomUtxos(
+    allUtxos: Utxo[],
+    inclusionProbability = 0.5
+  ): Utxo[] {
+    const addressMap = new Map<string, Utxo[]>();
+    allUtxos.forEach((utxo) => {
+      if (!addressMap.has(utxo.address)) {
+        addressMap.set(utxo.address, []);
+      }
+      addressMap.get(utxo.address)!.push(utxo);
+    });
+
+    const addressEntries = Array.from(addressMap.entries());
+    // Shuffle addresses to randomize selection
+    addressEntries.sort(() => Math.random() - 0.5);
+
+    let selected: Utxo[] = [];
+    selected = addressEntries.reduce((acc, [address, utxos]) => {
+      // Skip addresses with too many UTXOs
+      if (utxos.length > 5) {
+        Log.log(
+          `Skipping address ${address} with ${utxos.length} UTXOs (too many)`
+        );
+        return acc;
+      }
+
+      // Skip addresses that do not meet the inclusion probability
+      if (Math.random() > inclusionProbability) {
+        return acc;
+      }
+
+      // Skip if selecting these UTXOs would exceed max coins
+      if (acc.length + utxos.length > FusionService._defaultMaxCoins) {
+        Log.log(`Skipping address ${address} due to exceeding MAX_COINS`);
+        return acc;
+      }
+
+      // Add the UTXOs to the selected list
+      Log.log(
+        `zzzfusion Including address ${address} with ${utxos.length} UTXOs`
+      );
+      return [...acc, ...utxos];
+    }, [] as Utxo[]);
+
+    Log.log(
+      `zzzfusion Selected ${selected.length} UTXOs out of ${allUtxos.length}`
+    );
+    selected.forEach((utxo, index) => {
+      Log.log(
+        `Selected UTXO #${index + 1}:`,
+        `address=${utxo.address}, txid=${utxo.txid}, tx_pos=${utxo.tx_pos}, amount=${utxo.amount}, memo=${utxo.memo}`
+      );
+    });
+
+    return selected;
+  }
+
+  private async _startFusionRound(): Promise<void> {
     Log.log("Starting fusion round...");
 
+    const allUtxos = await this._grabWalletUtxos();
+    const selectedUtxos = FusionService._selectRandomUtxos(allUtxos, 0.5);
+
+    Log.log("Selected UTXOs:", selectedUtxos);
+
+    // Simulate a delay to represent fusion processing
     await new Promise<void>((resolve) => {
       setTimeout(() => resolve(), 5000);
     });
