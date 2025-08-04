@@ -1,4 +1,4 @@
-The proto definition file resides in src/protobuf/fusion.proto.
+The proto definition file resides in protobuf/fusion.proto.
 
 After installing protobufjs tools, you can build the generated file src/proto/fusion.js with these commands:
 
