@@ -1,0 +1,36 @@
+export const Protocol = {
+  VERSION: new TextEncoder().encode("alpha13"),
+
+  // Identifiers
+  FUSE_ID: new Uint8Array([0x46, 0x55, 0x5a, 0x00]), // 'FUZ\x00'
+  MIN_OUTPUT: 10000,
+
+  // Some essentials:
+  MAX_COMPONENT_FEERATE: 5000,
+  MIN_EXCESS_FEE_CLIENT: 400,
+  MIN_TX_COMPONENTS: 11,
+
+  // Covert connection timeouts
+  COVERT_CONNECT_TIMEOUT: 15.0,
+  COVERT_CONNECT_WINDOW: 15.0,
+  COVERT_SUBMIT_TIMEOUT: 3.0,
+  COVERT_SUBMIT_WINDOW: 5.0,
+  COVERT_CONNECT_SPARES: 6,
+  MAX_CLOCK_DISCREPANCY: 5.0,
+
+  // Critical timeline (client/server timing in seconds)
+  WARMUP_TIME: 30.0,
+  WARMUP_SLOP: 3.0,
+  TS_EXPECTING_COMMITMENTS: 3.0,
+  T_START_COMPS: 5.0,
+  TS_EXPECTING_COVERT_COMPONENTS: 15.0,
+  T_START_SIGS: 20.0,
+  TS_EXPECTING_COVERT_SIGNATURES: 30.0,
+  T_EXPECTING_CONCLUSION: 35.0,
+  T_START_CLOSE: 45.0,
+  T_START_CLOSE_BLAME: 80.0,
+
+  // Blame and non-critical timing
+  STANDARD_TIMEOUT: 3.0,
+  BLAME_VERIFY_TIME: 5.0,
+};

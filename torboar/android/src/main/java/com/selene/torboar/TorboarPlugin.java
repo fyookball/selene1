@@ -30,6 +30,9 @@ import java.io.InputStreamReader;
 import net.freehaven.tor.control.TorControlConnection;
 import net.freehaven.tor.control.TorControlCommands;
 
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+
 @CapacitorPlugin(name = "Torboar")
 public class TorboarPlugin extends Plugin {
 
@@ -40,7 +43,12 @@ public class TorboarPlugin extends Plugin {
     private Socket controlSocket;
 
     private File torDataDir;
-    
+
+    // These are for TCP stuff (not TOR)
+    private Socket tcpSocket;
+    private OutputStream tcpOut;
+    private InputStream tcpIn;
+    //---
     
     private void initTorControl() throws IOException {
     
@@ -57,7 +65,6 @@ public class TorboarPlugin extends Plugin {
 }
 
 
-   
 private void waitForTorBootstrap(Process torProcess) throws IOException {
   
     // Get stdout from tor
@@ -170,7 +177,104 @@ public void makeRequestThroughCircuit(PluginCall call) {
         }
     }).start();
 }
+ 
+ 
+@PluginMethod
+public void connectTcp(PluginCall call) {
+    String host = call.getString("host");
+    int port = call.getInt("port");
+    boolean ssl = call.getBoolean("ssl", false);
 
+    try {
+        if (ssl) {
+            // Create SSL socket
+            SSLSocketFactory factory =
+                (SSLSocketFactory) SSLSocketFactory.getDefault();
+            SSLSocket sslSocket =
+                (SSLSocket) factory.createSocket(host, port);
+            sslSocket.startHandshake(); // do TLS handshake now
+            tcpSocket = sslSocket;
+        } else {
+            // Plain TCP
+            tcpSocket = new Socket(host, port);
+        }
+
+        tcpOut = tcpSocket.getOutputStream();
+        tcpIn = tcpSocket.getInputStream();
+
+        Log.d(TAG, "Connected to " + (ssl ? "TLS" : "TCP") + " " + host + ":" + port);
+        call.resolve();
+    } catch (IOException e) {
+        Log.e(TAG, (ssl ? "TLS" : "TCP") + " connection failed", e);
+        call.reject((ssl ? "TLS" : "TCP") + " connection failed: " + e.getMessage());
+    }
+}
+
+
+@PluginMethod
+public void sendTcpData(PluginCall call) {
+    String hex = call.getString("data");
+    if (tcpOut == null) {
+        call.reject("TCP socket not connected.");
+        return;
+    }
+
+    try {
+        byte[] bytes = hexStringToByteArray(hex);
+        tcpOut.write(bytes);
+        tcpOut.flush();
+        call.resolve();
+    } catch (IOException e) {
+        Log.e(TAG, "Send failed", e);
+        call.reject("TCP send failed: " + e.getMessage());
+    }
+}
+
+@PluginMethod
+public void receiveTcpData(PluginCall call) {
+    if (tcpIn == null) {
+        call.reject("TCP socket not connected.");
+        return;
+    }
+
+    try {
+        byte[] buffer = new byte[4096];
+        int len = tcpIn.read(buffer);
+        if (len == -1) {
+            call.reject("EOF reached");
+            return;
+        }
+
+        byte[] received = new byte[len];
+        System.arraycopy(buffer, 0, received, 0, len);
+        String hex = bytesToHex(received);
+
+        JSObject result = new JSObject();
+        result.put("data", hex);
+        call.resolve(result);
+    } catch (IOException e) {
+        Log.e(TAG, "Receive failed", e);
+        call.reject("TCP receive failed: " + e.getMessage());
+    }
+}
+
+private static byte[] hexStringToByteArray(String s) {
+    int len = s.length();
+    byte[] data = new byte[len / 2];
+    for (int i = 0; i < len; i += 2) {
+        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                            + Character.digit(s.charAt(i+1), 16));
+    }
+    return data;
+}
+
+private static String bytesToHex(byte[] bytes) {
+    StringBuilder sb = new StringBuilder();
+    for (byte b : bytes) {
+        sb.append(String.format("%02x", b));
+    }
+    return sb.toString();
+}
 
 
 @Override

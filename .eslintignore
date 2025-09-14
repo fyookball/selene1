@@ -1,0 +1,3 @@
+# Ignore generated protobuf output
+src/proto/fusion.js
+

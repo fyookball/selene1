@@ -1,10 +1,15 @@
 // Manages a persistent FusionService that continuously checks
 // whether a new fusion round should start, and runs it safely (no overlap).
 
+import { Plugins } from "@capacitor/core";
 import LogService from "@/services/LogService";
 import UtxoManagerService from "@/services/UtxoManagerService";
 
+import { Protocol } from "./FusionProtocol/protocol";
+import { block_checkpoints } from "@/util/block_checkpoints";
+
 const Log = LogService("FusionService");
+const { Torboar } = Plugins;
 
 type Utxo = {
   address: string;
@@ -24,8 +29,10 @@ export class FusionService {
   private _walletHash: string;
 
   private _utxoManager: ReturnType<typeof UtxoManagerService>;
- 
+
   private static _defaultMaxCoins = 10;
+
+  private _fusion?: typeof import("@/proto/fusion").fusion;
 
   constructor(walletHash: string) {
     this._walletHash = walletHash;
@@ -33,7 +40,24 @@ export class FusionService {
     Log.log("FusionService initialized with walletHash:", this._walletHash);
   }
 
+  private static _toHex(u8: Uint8Array): string {
+    return [...u8].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  private static _fromHex(hex: string): Uint8Array {
+    const bytes = hex.match(/.{1,2}/g);
+    if (!bytes) throw new Error("Invalid hex");
+    return new Uint8Array(bytes.map((b) => parseInt(b, 16)));
+  }
+
+  private static _hexToReversedUint8Array(hex: string): Uint8Array {
+    const bytes = hex.match(/.{2}/g);
+    if (!bytes) throw new Error("Invalid hex");
+    return new Uint8Array(bytes.reverse().map((b) => parseInt(b, 16)));
+  }
+
   public async start(): Promise<void> {
+    Log.log("start of fusion service...");
     if (this._isRunning) {
       Log.log("FusionService already running");
       return;
@@ -42,7 +66,14 @@ export class FusionService {
     this._isRunning = true;
     this._shouldStopRequested = false;
     Log.log("FusionService started");
-
+    if (!this._fusion) {
+      try {
+        const { fusion } = await import("@/proto/fusion");
+        this._fusion = fusion;
+      } catch (err) {
+        Log.error("Failed to import fusion proto:", err);
+      }
+    }
     this._scheduleNextRound();
   }
 
@@ -127,9 +158,7 @@ export class FusionService {
       }
 
       // Add the UTXOs to the selected list
-      Log.log(
-        `zzzfusion Including address ${address} with ${utxos.length} UTXOs`
-      );
+
       return [...acc, ...utxos];
     }, [] as Utxo[]);
 
@@ -146,6 +175,138 @@ export class FusionService {
     return selected;
   }
 
+  private async _sendGreet(): Promise<void> {
+    //const host = "fusion.servo.cash"; // add configuration later
+    const host = "45.77.136.9"; // Need to use IP for development, DNS doesnt always work from within emulator.
+    const port = 8789;
+
+    await Torboar.connectTcp({ host, port, ssl: true });
+
+    const versionBytes = Protocol.VERSION;
+
+    const genesisHash = FusionService._hexToReversedUint8Array(
+      block_checkpoints.satoshiGenesis.blockhash
+    );
+
+    if (!this._fusion) {
+      throw new Error("Fusion proto not loaded; call start() first");
+    }
+
+    const clientHello = this._fusion.ClientHello.create({
+      version: versionBytes,
+      genesisHash,
+    });
+
+    // wrap inner message in outer ClientMessage
+    const clientMessage = this._fusion.ClientMessage.create({
+      clienthello: clientHello,
+    });
+
+    // serialize the outer message
+    const payloadBytes =
+      this._fusion.ClientMessage.encode(clientMessage).finish();
+
+    // Magic & 4-byte length
+    /* eslint-disable no-bitwise */
+    const MAGIC = FusionService._fromHex("765be8b4e4396dcf");
+    const lengthBytes = new Uint8Array([
+      (payloadBytes.length >>> 24) & 0xff,
+      (payloadBytes.length >>> 16) & 0xff,
+      (payloadBytes.length >>> 8) & 0xff,
+      payloadBytes.length & 0xff,
+    ]);
+    /* eslint-enable no-bitwise */
+
+    // Combine
+    const frameBytes = new Uint8Array(
+      MAGIC.length + lengthBytes.length + payloadBytes.length
+    );
+    frameBytes.set(MAGIC, 0);
+    frameBytes.set(lengthBytes, MAGIC.length);
+    frameBytes.set(payloadBytes, MAGIC.length + lengthBytes.length);
+
+    // Send raw bytes (Torboar plugin takes hex)
+    await Torboar.sendTcpData({ data: FusionService._toHex(frameBytes) });
+
+    let hexResponse: string;
+    try {
+      const TIMEOUT_MS = 9000; // 9-second timeout
+
+      // Wrap receiveTcpData with timeout
+      const result = await Promise.race([
+        Torboar.receiveTcpData(),
+        new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error("Timed out waiting for ServerHello"));
+          }, TIMEOUT_MS);
+        }),
+      ]);
+
+      // if we got here, no timeout
+      hexResponse = (result as { data: string }).data;
+      Log.log("fusion Received raw hexResponse:", hexResponse);
+    } catch (err) {
+      Log.error("Error during receiveTcpData:", err);
+      throw err; // throwing error should make _startFusionRound abort
+    }
+
+    const responseBytes = FusionService._fromHex(hexResponse);
+
+    // Drop the first 12 bytes (8-byte magic + 4-byte length):
+    const responsepayloadBytes = responseBytes.slice(12);
+
+    let serverMsg;
+    try {
+      // decode the outer message first
+      serverMsg = this._fusion.ServerMessage.decode(responsepayloadBytes);
+    } catch (err) {
+      Log.error(
+        "Error decoding ServerMessage:",
+        err,
+        "hex:",
+        FusionService._toHex(responsepayloadBytes)
+      );
+      return;
+    }
+
+    // extract the ServerHello from severMsg
+    const serverHello = serverMsg.serverhello;
+    if (!serverHello) {
+      Log.error("ServerMessage did not contain serverhello");
+      return;
+    }
+
+    const componentFeerate = Number(serverHello.componentFeerate);
+    const minExcessFee = Number(serverHello.minExcessFee);
+    const maxExcessFee = Number(serverHello.maxExcessFee);
+    const tiers = serverHello.tiers.map(Number);
+
+    Log.log("fusion Received ServerHello:", {
+      numComponents: serverHello.numComponents,
+      componentFeerate,
+      minExcessFee,
+      maxExcessFee,
+      tiers,
+      donationAddress: serverHello.donationAddress,
+    });
+
+    // Validations
+    if (componentFeerate > Protocol.MAX_COMPONENT_FEERATE) {
+      throw new Error("Excessive component feerate from server");
+    }
+    if (minExcessFee > Protocol.MIN_EXCESS_FEE_CLIENT) {
+      throw new Error("Excessive min excess fee from server");
+    }
+    if (minExcessFee > maxExcessFee) {
+      throw new Error("Bad server config: minExcessFee > maxExcessFee");
+    }
+    if (serverHello.numComponents < Protocol.MIN_TX_COMPONENTS * 1.5) {
+      throw new Error("Bad server config: too few components");
+    }
+
+    Log.log("Fusion server ready. Tiers available:", tiers);
+  } // END OF FUNCTION
+
   private async _startFusionRound(): Promise<void> {
     Log.log("Starting fusion round...");
 
@@ -154,9 +315,16 @@ export class FusionService {
 
     Log.log("Selected UTXOs:", selectedUtxos);
 
+    // Phase 1: Greet the server.
+    try {
+      await this._sendGreet();
+    } catch (err) {
+      Log.error("greet with fusion server failed:", err);
+      return; // abort round
+    }
     // Simulate a delay to represent fusion processing
     await new Promise<void>((resolve) => {
-      setTimeout(() => resolve(), 5000);
+      setTimeout(() => resolve(), 500000); //set to 5000.
     });
 
     Log.log("Fusion round completed");
