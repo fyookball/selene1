@@ -19,6 +19,8 @@ type Utxo = {
   memo: string | null;
 };
 
+type ServerHelloType = import("@/proto/fusion").fusion.ServerHello;
+
 export class FusionService {
   private _isRunning = false;
 
@@ -94,10 +96,10 @@ export class FusionService {
           .catch((err) => Log.error("Fusion round failed", err))
           .finally(() => {
             this._currentRound = null;
-            this._scheduleNextRound();
+            //this._scheduleNextRound();  //DEBUGGING. IF WE WANT PERSISTENT FUSIONS, UNCOMMENT.
           });
       } else {
-        this._scheduleNextRound();
+        //this._scheduleNextRound();  //DEBUGGING. IF WE WANT PERSISTENT FUSIONS, UNCOMMENT.
       }
     }, 10000); // 10-second interval between checks
   }
@@ -175,9 +177,8 @@ export class FusionService {
     return selected;
   }
 
-  private async _sendGreet(): Promise<void> {
-    //const host = "fusion.servo.cash"; // add configuration later
-    const host = "45.77.136.9"; // Need to use IP for development, DNS doesnt always work from within emulator.
+  private async _sendGreet(): Promise<ServerHelloType | undefined> {
+    const host = "45.77.136.9"; // for dev, DNS can be flaky in emulator
     const port = 8789;
 
     await Torboar.connectTcp({ host, port, ssl: true });
@@ -231,8 +232,6 @@ export class FusionService {
     let hexResponse: string;
     try {
       const TIMEOUT_MS = 9000; // 9-second timeout
-
-      // Wrap receiveTcpData with timeout
       const result = await Promise.race([
         Torboar.receiveTcpData(),
         new Promise((_, reject) => {
@@ -242,12 +241,11 @@ export class FusionService {
         }),
       ]);
 
-      // if we got here, no timeout
       hexResponse = (result as { data: string }).data;
       Log.log("fusion Received raw hexResponse:", hexResponse);
     } catch (err) {
       Log.error("Error during receiveTcpData:", err);
-      throw err; // throwing error should make _startFusionRound abort
+      throw err; // abort round
     }
 
     const responseBytes = FusionService._fromHex(hexResponse);
@@ -266,14 +264,14 @@ export class FusionService {
         "hex:",
         FusionService._toHex(responsepayloadBytes)
       );
-      return;
+      return undefined;
     }
 
-    // extract the ServerHello from severMsg
-    const serverHello = serverMsg.serverhello;
+    // Extract the ServerHello from severMsg
+    const serverHello = serverMsg.serverhello as ServerHelloType | undefined;
     if (!serverHello) {
       Log.error("ServerMessage did not contain serverhello");
-      return;
+      return undefined;
     }
 
     const componentFeerate = Number(serverHello.componentFeerate);
@@ -305,28 +303,159 @@ export class FusionService {
     }
 
     Log.log("Fusion server ready. Tiers available:", tiers);
-  } // END OF FUNCTION
+
+    return serverHello;
+  } // END OF FUNCTION SEND GREET
+
+  //------------------------------------------------------------
+  /* eslint-disable no-await-in-loop */
+  /* eslint-disable no-constant-condition, no-else-return */
+  private async _registerAndWait(
+    serverHello: ServerHello,
+    selectedUtxos: Utxo[]
+  ): Promise<void> {
+    if (!this._fusion) throw new Error("Fusion proto not loaded");
+
+    // Get the tier list from the server.
+    const tiersSorted = [...serverHello.tiers].sort((a, b) => a - b);
+    if (!tiersSorted.length) {
+      throw new Error("No outputs available at any tier");
+    }
+
+    Log.log("selectedutxos is ", selectedUtxos);
+
+    Log.log("Registering for tiers:", tiersSorted);
+
+    // Build PoolTag (part of JoinPoolsMsg)
+    const randomTag = crypto.getRandomValues(new Uint8Array(20));
+
+    // Assume limit 1 -- later we can implement "fuse as two players"
+    const tags = [
+      this._fusion.JoinPools.PoolTag.create({
+        id: randomTag,
+        limit: 1,
+      }),
+    ];
+
+    // Create JoinPools message
+    const joinPoolsMsg = this._fusion.JoinPools.create({
+      tiers: tiersSorted,
+      tags,
+    });
+
+    // wrap in ClientMessage for sending
+    const clientMessage = this._fusion.ClientMessage.create({
+      joinpools: joinPoolsMsg, // lowercased matches proto oneof field
+    });
+
+    // encode and send
+    const payloadBytes =
+      this._fusion.ClientMessage.encode(clientMessage).finish();
+
+    const MAGIC = FusionService._fromHex("765be8b4e4396dcf");
+    /* eslint-disable no-bitwise */
+    const lengthBytes = new Uint8Array([
+      (payloadBytes.length >>> 24) & 0xff,
+      (payloadBytes.length >>> 16) & 0xff,
+      (payloadBytes.length >>> 8) & 0xff,
+      payloadBytes.length & 0xff,
+    ]);
+    /* eslint-enable no-bitwise */
+
+    const frameBytes = new Uint8Array(
+      MAGIC.length + lengthBytes.length + payloadBytes.length
+    );
+    frameBytes.set(MAGIC, 0);
+    frameBytes.set(lengthBytes, MAGIC.length);
+    frameBytes.set(payloadBytes, MAGIC.length + lengthBytes.length);
+
+    await Torboar.sendTcpData({ data: FusionService._toHex(frameBytes) });
+
+    // Now wait for either TierStatusUpdate or FusionBegin.
+
+    /* eslint-disable no-promise-executor-return */
+    while (true) {
+      Log.log("Waiting for TierStatusUpdate or FusionBegin...");
+      let result;
+      try {
+        result = await Promise.race([
+          Torboar.receiveTcpData(),
+          new Promise((_, reject) => {
+            setTimeout(
+              () => reject(new Error("Timed out waiting for server")),
+              10000
+            );
+          }),
+        ]);
+      } catch (err) {
+        Log.error("Error while waiting for server message:", err);
+        // break or continue ...maybe we should break.
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+      /* eslint-enable no-promise-executor-return */
+
+      Log.log("About to unwrap fusion");
+      const hexResponse = (result as { data: string }).data;
+      const responseBytes = FusionService._fromHex(hexResponse);
+      const payload = responseBytes.slice(12); // drop magic+len
+
+      try {
+        // decode outer wrapper
+        const serverMsg = this._fusion.ServerMessage.decode(payload);
+
+        if (serverMsg.fusionbegin) {
+          Log.log("Got FusionBegin:", serverMsg.fusionbegin);
+          // store tier, covert_domain etc. from fusionBegin
+          return; // exit the loop
+        } else if (serverMsg.tierstatusupdate) {
+          Log.log("Got TierStatusUpdate:", serverMsg.tierstatusupdate);
+          // This is where we could add logic to update tiers for UI.
+          // eslint-disable-next-line no-continue
+          continue;
+        } else {
+          Log.error("Unknown ServerMessage type:", serverMsg);
+          // eslint-disable-next-line no-continue
+          continue;
+        }
+      } catch (err) {
+        Log.error("Error decoding ServerMessage:", err);
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+    }
+  }
+  /* eslint-enable no-await-in-loop */
+  /* eslint-enable no-constant-condition, no-else-return */
+  //--------------------------------------------------------------
 
   private async _startFusionRound(): Promise<void> {
     Log.log("Starting fusion round...");
 
     const allUtxos = await this._grabWalletUtxos();
     const selectedUtxos = FusionService._selectRandomUtxos(allUtxos, 0.5);
-
     Log.log("Selected UTXOs:", selectedUtxos);
 
-    // Phase 1: Greet the server.
+    // Phase 1: Greet the server and get ServerHello info
+    let serverHello;
     try {
-      await this._sendGreet();
+      serverHello = await this._sendGreet();
     } catch (err) {
       Log.error("greet with fusion server failed:", err);
       return; // abort round
     }
-    // Simulate a delay to represent fusion processing
-    await new Promise<void>((resolve) => {
-      setTimeout(() => resolve(), 500000); //set to 5000.
-    });
+
+    // Now we have the tiers, etc, in serverHello
+    Log.log("ServerHello returned tiers:", serverHello.tiers);
+
+    // Phase 2: Register for tiers and wait
+    try {
+      await this._registerAndWait(serverHello, selectedUtxos);
+    } catch (err) {
+      Log.error("registerAndWait failed:", err);
+      return;
+    }
 
     Log.log("Fusion round completed");
   }
-}
+} // END OF CLASS.
