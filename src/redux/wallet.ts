@@ -73,10 +73,11 @@ export const walletBoot = createAsyncThunk(
     //kick off CashFusion subservice
     try {
       console.log(
-        "walletBoot: Dispatching cashfusionInit() with walletHash:",
+        "walletBoot: Dispatching cashfusionInit()",
         wallet.walletHash
       );
-      await thunkApi.dispatch(cashfusionInit(wallet.walletHash));
+      await thunkApi.dispatch(cashfusionInit(wallet));
+
       console.log("walletBoot: cashfusionInit() completed");
     } catch (err) {
       console.error("walletBoot: Error dispatching cashfusionInit:", err);

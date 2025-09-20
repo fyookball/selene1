@@ -9,6 +9,8 @@ export const Protocol = {
   MAX_COMPONENT_FEERATE: 5000,
   MIN_EXCESS_FEE_CLIENT: 400,
   MIN_TX_COMPONENTS: 11,
+  MAX_EXCESS_FEE: 10000,
+  MAX_COMPONENTS: 40,
 
   // Covert connection timeouts
   COVERT_CONNECT_TIMEOUT: 15.0,
