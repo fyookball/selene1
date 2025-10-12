@@ -8,6 +8,8 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.JSArray;
+
 
 import java.io.File;
 import java.io.IOException;
@@ -20,11 +22,13 @@ import okhttp3.Response;
 
 import java.net.Socket;
 
+import java.util.HashMap;
 import java.util.List; 
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.SocketException;
 
 
 import net.freehaven.tor.control.TorControlConnection;
@@ -32,10 +36,15 @@ import net.freehaven.tor.control.TorControlCommands;
 
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+  
+
 
 @CapacitorPlugin(name = "Torboar")
 public class TorboarPlugin extends Plugin {
 
+    // Global "context" for secp
+    private static long secpCtx;
+    
     private TorControlConnection torControlConn;
     private static final String TAG = "Torboar";
     private static final String TOR_SOCKS_PORT = "9050";
@@ -48,8 +57,20 @@ public class TorboarPlugin extends Plugin {
     private Socket tcpSocket;
     private OutputStream tcpOut;
     private InputStream tcpIn;
-    //---
-    
+    //-------
+  
+    static {
+    System.loadLibrary("secp256k1"); // This matches libsecp256k1.so
+    }
+
+    private static String toHex(byte[] data) {  
+    StringBuilder sb = new StringBuilder();
+    for (byte b : data) {
+        sb.append(String.format("%02x", b & 0xFF));
+    }
+    return sb.toString();
+}
+ 
     private void initTorControl() throws IOException {
     
     // Connect if not already initialized
@@ -62,6 +83,268 @@ public class TorboarPlugin extends Plugin {
     torControlConn = new TorControlConnection(controlSocket);
     torControlConn.launchThread(true);
     torControlConn.authenticate(new byte[0]); // Uses no password
+}
+
+
+// Declare the native methods 
+private native long createSecp256k1Context();
+
+public native HashMap<String, Object> secp256k1EcPubkeyParse(
+    long ctx,
+    byte[] pubkeyOut,
+    byte[] input,
+    int inputLen
+);
+
+public native HashMap<String, Object> secp256k1EcPubkeyCombine(
+    long ctx,
+    byte[] outputBuf,
+    byte[] inputBuf1,
+    byte[] inputBuf2
+);
+
+private native void secp256k1EcPubkeySerialize(
+    long ctx,
+    byte[] inputBytes,
+    int flags,
+    int[] result,
+    int[] outputLen,
+    byte[] output
+);
+
+
+ public native HashMap<String, Object> secp256k1EcPubkeyTweakMul(
+    long ctx,
+    byte[] inputPubkey,
+    byte[] scalar
+);
+
+ 
+ @PluginMethod
+public void createSecp256k1Context(PluginCall call) {
+    try {
+        long ctx = this.createSecp256k1Context();  // calls native
+        JSObject ret = new JSObject();
+        ret.put("ctx", ctx);
+        call.resolve(ret);
+    } catch (Exception e) {
+        call.reject("Failed to create secp256k1 context: " + e.getMessage());
+    }
+}
+ 
+  
+  
+  @PluginMethod
+public void secp256k1EcPubkeyParse(PluginCall call) {
+    try {
+    
+        Log.d(TAG, "fusionservice torboar secp parse");
+        long ctx = secpCtx;
+
+        JSArray inputArray = call.getArray("input");
+        JSArray outputArray = call.getArray("output");
+        Integer inputLen = call.getInt("inputLen");
+
+        if (inputArray == null || outputArray == null || inputLen == null) {
+            call.reject("Missing 'input', 'output', or 'inputLen'");
+            return;
+        }
+
+        // Convert JS arrays to byte[]
+        byte[] inputBytes = new byte[inputArray.length()];
+        for (int i = 0; i < inputArray.length(); i++) {
+            inputBytes[i] = (byte) inputArray.getInt(i);
+        }
+
+        byte[] pubkeyOut = new byte[outputArray.length()];
+        for (int i = 0; i < outputArray.length(); i++) {
+            pubkeyOut[i] = (byte) outputArray.getInt(i);
+        }
+
+        // Call native JNI function that returns both values
+        @SuppressWarnings("unchecked")
+        HashMap<String, Object> result =
+            this.secp256k1EcPubkeyParse(ctx, pubkeyOut, inputBytes, inputLen);
+
+        if (result == null) {
+            call.reject("Native parse returned null");
+            return;
+        }
+
+        int res = (Integer) result.get("res");
+        byte[] pubkey = (byte[]) result.get("pubkey");
+
+        // Convert to JS-friendly types
+        JSArray pubkeyArray = new JSArray();
+        for (byte b : pubkey) {
+            pubkeyArray.put(b & 0xFF);
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("res", res);
+        ret.put("pubkey", pubkeyArray);
+
+        call.resolve(ret);
+
+    } catch (Exception e) {
+        call.reject("Exception in parse: " + e.getMessage());
+    }
+}
+
+@PluginMethod
+public void secp256k1EcPubkeyCombine(PluginCall call) {
+    try {
+        
+        Log.d(TAG, "fusionservice torboar secp combine");
+        long ctx = secpCtx;
+
+        JSArray outputArray = call.getArray("output");
+        JSArray input1Array = call.getArray("input1");
+        JSArray input2Array = call.getArray("input2");
+
+        if (outputArray == null || input1Array == null || input2Array == null) {
+            call.reject("Missing 'output', 'input1', or 'input2'");
+            return;
+        }
+
+        byte[] outputBuf = new byte[outputArray.length()];
+        for (int i = 0; i < outputArray.length(); i++) {
+            outputBuf[i] = (byte) outputArray.getInt(i);
+        }
+
+        byte[] inputBuf1 = new byte[input1Array.length()];
+        for (int i = 0; i < input1Array.length(); i++) {
+            inputBuf1[i] = (byte) input1Array.getInt(i);
+        }
+
+        byte[] inputBuf2 = new byte[input2Array.length()];
+        for (int i = 0; i < input2Array.length(); i++) {
+            inputBuf2[i] = (byte) input2Array.getInt(i);
+        }
+
+        @SuppressWarnings("unchecked")
+        HashMap<String, Object> result =
+            this.secp256k1EcPubkeyCombine(ctx, outputBuf, inputBuf1, inputBuf2);
+
+        if (result == null) {
+            call.reject("Native combine returned null");
+            return;
+        }
+
+        int res = (Integer) result.get("res");
+        byte[] pubkey = (byte[]) result.get("pubkey");
+
+        JSArray pubkeyArray = new JSArray();
+        for (byte b : pubkey) {
+            pubkeyArray.put(b & 0xFF);
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("res", res);
+        ret.put("pubkey", pubkeyArray);
+
+        call.resolve(ret);
+
+    } catch (Exception e) {
+        call.reject("Exception in combine: " + e.getMessage());
+    }
+}
+ 
+ @PluginMethod
+public void secp256k1EcPubkeySerialize(PluginCall call) {
+    try {
+        long ctx = secpCtx;
+
+        JSArray inputArray = call.getArray("input");
+        Integer flags = call.getInt("flags");
+
+        if (inputArray == null || flags == null) {
+            call.reject("Missing 'input' or 'flags'");
+            return;
+        }
+
+        byte[] inputBytes = new byte[inputArray.length()];
+        for (int i = 0; i < inputArray.length(); i++) {
+            inputBytes[i] = (byte) inputArray.getInt(i);
+        }
+
+        // Prepare out parameters
+        int[] result = new int[1];
+        int[] outputLen = new int[1];
+        outputLen[0] = (flags == 258) ? 33 : 65; 
+        byte[] output = new byte[outputLen[0]];
+
+        // Call into JNI
+        secp256k1EcPubkeySerialize(ctx, inputBytes, flags, result, outputLen, output);
+
+        // Convert result to JS-friendly format
+        JSArray pubkeyArray = new JSArray();
+        for (int i = 0; i < outputLen[0]; i++) {
+            pubkeyArray.put(output[i] & 0xFF);
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("res", result[0]);
+        ret.put("pubkey", pubkeyArray);
+
+        call.resolve(ret);
+
+    } catch (Exception e) {
+        call.reject("Exception in secp256k1EcPubkeySerialize: " + e.getMessage());
+    }
+}
+
+
+
+@PluginMethod
+public void secp256k1EcPubkeyTweakMul(PluginCall call) {
+    try {
+        long ctx = secpCtx;
+
+        JSArray inputPubkeyArray = call.getArray("inputPubkey");
+        JSArray scalarArray = call.getArray("scalar");
+
+        if (inputPubkeyArray == null || scalarArray == null) {
+            call.reject("Missing 'inputPubkey' or 'scalar'");
+            return;
+        }
+
+        byte[] inputPubkey = new byte[inputPubkeyArray.length()];
+        for (int i = 0; i < inputPubkeyArray.length(); i++) {
+            inputPubkey[i] = (byte) inputPubkeyArray.getInt(i);
+        }
+
+        byte[] scalar = new byte[scalarArray.length()];
+        for (int i = 0; i < scalarArray.length(); i++) {
+            scalar[i] = (byte) scalarArray.getInt(i);
+        }
+
+        @SuppressWarnings("unchecked")
+        HashMap<String, Object> result =
+            this.secp256k1EcPubkeyTweakMul(ctx, inputPubkey, scalar);
+
+        if (result == null) {
+            call.reject("Native tweak_mul returned null");
+            return;
+        }
+
+        int res = (Integer) result.get("res");
+        byte[] pubkey = (byte[]) result.get("pubkey");
+
+        JSArray pubkeyArray = new JSArray();
+        for (byte b : pubkey) {
+            pubkeyArray.put(b & 0xFF);
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("res", res);
+        ret.put("pubkey", pubkeyArray);
+
+        call.resolve(ret);
+
+    } catch (Exception e) {
+        call.reject("Exception in tweak_mul: " + e.getMessage());
+    }
 }
 
 
@@ -82,51 +365,122 @@ private void waitForTorBootstrap(Process torProcess) throws IOException {
 
 
 @PluginMethod
-public void createNewCircuit(PluginCall call) {
+public void closeConnection(PluginCall call) {
     try {
-        initTorControl();
-
-        OutputStream out = controlSocket.getOutputStream();
-        InputStream in = controlSocket.getInputStream();
-
-        // Send EXTENDCIRCUIT command with 0 to create new circuit.
-        String cmd = "EXTENDCIRCUIT 0\r\n";
-        out.write(cmd.getBytes());
-        out.flush();
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-        String line;
-        String circuitId = null;
-
-        while ((line = reader.readLine()) != null) {
-            Log.d(TAG, "Tor response: " + line);
-
-            if (line.startsWith("250 EXTENDED")) {
-                // Expected: 250 EXTENDED <CircuitID>
-                String[] parts = line.split(" ");
-                if (parts.length >= 3) {
-                    circuitId = parts[2];
-                    break;
-                }
-            } else if (line.startsWith("5") || line.startsWith("51") || line.startsWith("552")) {
-                throw new IOException("Error from Tor control: " + line);
-            }
+        if (tcpSocket != null) {
+            tcpSocket.close();
+            tcpSocket = null;
         }
-
-        if (circuitId == null) {
-            call.reject("Failed to receive circuit ID");
-            return;
-        }
-
-        Log.d(TAG, "Created new circuit: " + circuitId);
-        JSObject ret = new JSObject();
-        ret.put("circuitId", circuitId);
-        call.resolve(ret);
-
-    } catch (Exception e) {
-        Log.e(TAG, "Failed to create circuit", e);
-        call.reject("Circuit creation failed: " + e.getMessage());
+        tcpOut = null;
+        tcpIn = null;
+        Log.d(TAG, "Tor socket connection closed");
+        call.resolve();
+    } catch (IOException e) {
+        Log.e(TAG, "Error closing socket", e);
+        call.reject("Failed to close socket: " + e.getMessage());
     }
+}
+
+
+ 
+ @PluginMethod
+public void openConnectionThroughCircuit(PluginCall call) {
+    String host = call.getString("host");
+    int port = call.getInt("port");
+    boolean ssl = call.getBoolean("ssl", false);
+    String circuitKey = call.getString("circuitKey", "default");
+
+    getBridge().execute(() -> {
+        try {
+            // Set SOCKS authentication for circuit isolation
+            System.setProperty("java.net.socks.username", circuitKey);
+            System.setProperty("java.net.socks.password", "pass_" + circuitKey);
+
+            // Create SOCKS proxy
+            Proxy proxy = new Proxy(Proxy.Type.SOCKS,
+                    new InetSocketAddress("127.0.0.1", Integer.parseInt(TOR_SOCKS_PORT)));
+
+            if (ssl) {
+                // Step 1: Create socket via proxy
+                Socket proxySocket = new Socket(proxy);
+                proxySocket.connect(new InetSocketAddress(host, port));
+
+                // Step 2: Wrap in SSL
+                SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+                SSLSocket sslSocket = (SSLSocket) factory.createSocket(
+                        proxySocket, host, port, true);  // true = auto-close proxy socket
+                sslSocket.startHandshake();
+                tcpSocket = sslSocket;
+            } else {
+                // Plain TCP via proxy
+                tcpSocket = new Socket(proxy);
+                tcpSocket.connect(new InetSocketAddress(host, port));
+            }
+
+            tcpOut = tcpSocket.getOutputStream();
+            tcpIn = tcpSocket.getInputStream();
+
+            Log.d(TAG, "Persistent Tor socket connected to " + host + ":" + port + " over circuitKey " + circuitKey);
+            call.resolve();
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to open Tor socket connection", e);
+            call.reject("Tor socket connection failed: " + e.getMessage());
+        } finally {
+            System.clearProperty("java.net.socks.username");
+            System.clearProperty("java.net.socks.password");
+        }
+    });
+}
+
+ 
+
+ 
+ @PluginMethod
+public void createNewCircuit(PluginCall call) {
+    getBridge().execute(() -> {
+        try {
+            initTorControl();
+
+            OutputStream out = controlSocket.getOutputStream();
+            InputStream in = controlSocket.getInputStream();
+
+            String cmd = "EXTENDCIRCUIT 0\r\n";
+            out.write(cmd.getBytes());
+            out.flush();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            String line;
+            String circuitId = null;
+
+            while ((line = reader.readLine()) != null) {
+                Log.d(TAG, "Tor response: " + line);
+
+                if (line.startsWith("250 EXTENDED")) {
+                    String[] parts = line.split(" ");
+                    if (parts.length >= 3) {
+                        circuitId = parts[2];
+                        break;
+                    }
+                } else if (line.startsWith("5") || line.startsWith("51") || line.startsWith("552")) {
+                    throw new IOException("Error from Tor control: " + line);
+                }
+            }
+
+            if (circuitId == null) {
+                call.reject("Failed to receive circuit ID");
+                return;
+            }
+
+            Log.d(TAG, "Created new circuit: " + circuitId);
+            JSObject ret = new JSObject();
+            ret.put("circuitId", circuitId);
+            call.resolve(ret);
+
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to create circuit", e);
+            call.reject("Circuit creation failed: " + e.getMessage());
+        }
+    });
 }
 
 
@@ -192,6 +546,8 @@ public void connectTcp(PluginCall call) {
                 (SSLSocketFactory) SSLSocketFactory.getDefault();
             SSLSocket sslSocket =
                 (SSLSocket) factory.createSocket(host, port);
+                sslSocket.setSoTimeout(95000);       // Read timeout: 45 seconds
+    sslSocket.setKeepAlive(true); 
             sslSocket.startHandshake(); // do TLS handshake now
             tcpSocket = sslSocket;
         } else {
@@ -229,33 +585,159 @@ public void sendTcpData(PluginCall call) {
         call.reject("TCP send failed: " + e.getMessage());
     }
 }
-
-@PluginMethod
+ 
+   
+   
+   @PluginMethod
 public void receiveTcpData(PluginCall call) {
-    if (tcpIn == null) {
-        call.reject("TCP socket not connected.");
+
+    final boolean LOGGING = false; 
+    if (LOGGING) Log.d(TAG, "[FusionService]RECVTCPX: receiveTcpData() called");
+
+    if (!isSocketAlive(tcpSocket)) {
+        if (LOGGING) Log.e(TAG, "[FusionService]RECVTCPX: Socket is not alive at start");
+        call.reject("[FusionService]Socket not alive");
+        return;
+    }
+
+    // ✅ Get timeout from JS, default to 5000 ms if not provided
+    int timeoutMs = call.getInt("timeoutMs", 5000);
+    try {
+        tcpSocket.setSoTimeout(timeoutMs);
+    } catch (SocketException e) {
+        call.reject("[FusionService] Failed to set socket timeout: " + e.getMessage());
         return;
     }
 
     try {
-        byte[] buffer = new byte[4096];
-        int len = tcpIn.read(buffer);
-        if (len == -1) {
-            call.reject("EOF reached");
+        InputStream input = tcpSocket.getInputStream();
+        byte[] header = new byte[12];
+
+        int availableBefore = input.available();
+        if (LOGGING) Log.d(TAG, "[FusionService]RECVTCPX: Bytes available before header read = " + availableBefore);
+
+        if (availableBefore > 0) {
+            byte[] peek = new byte[Math.min(availableBefore, 32)];
+            input.mark(32);
+            input.read(peek);
+            input.reset();
+            if (LOGGING) Log.d(TAG, "[FusionService]RECVTCPX: Peek at buffer before header read = " + toHex(peek));
+        }
+
+        long readStart = System.currentTimeMillis();
+        if (LOGGING) Log.d(TAG, "[FusionService]RECVTCPX: Waiting for 12-byte header... @ " + readStart);
+
+        int read;
+        try {
+            read = input.read(header);
+        } catch (Exception e) {
+            if (LOGGING) Log.e(TAG, "[FusionService] Timeout or other exception during header read", e);
+            call.reject("[FusionService] Failed to read header: " + e.getMessage());
             return;
         }
 
-        byte[] received = new byte[len];
-        System.arraycopy(buffer, 0, received, 0, len);
-        String hex = bytesToHex(received);
+        if (read == -1) {
+            if (LOGGING) Log.e(TAG, "[FusionService]RECVTCPX: Socket closed (read == -1)");
+            call.reject("[FusionService]Socket closed");
+            return;
+        } else if (read != 12) {
+            if (LOGGING) Log.e(TAG, "[FusionService]RECVTCPX: Incomplete header read: " + read + " bytes");
+            call.reject("[FusionService]Incomplete header");
+            return;
+        }
 
-        JSObject result = new JSObject();
-        result.put("data", hex);
-        call.resolve(result);
-    } catch (IOException e) {
-        Log.e(TAG, "Receive failed", e);
-        call.reject("TCP receive failed: " + e.getMessage());
+        int len = ((header[8] & 0xFF) << 24) | ((header[9] & 0xFF) << 16) |
+                  ((header[10] & 0xFF) << 8) | (header[11] & 0xFF);
+        if (LOGGING) Log.d(TAG, "[FusionService]RECVTCPX: Parsed payload length = " + len);
+
+        byte[] payload = new byte[len];
+        int totalRead = 0;
+        long payloadStartTime = System.currentTimeMillis();
+
+        while (totalRead < len) {
+            int r;
+            try {
+                r = input.read(payload, totalRead, len - totalRead);
+            } catch (Exception e) {
+                if (LOGGING) Log.e(TAG, "[FusionService] Timeout or other exception during payload read", e);
+                call.reject("[FusionService] Failed to read payload: " + e.getMessage());
+                return;
+            }
+
+            if (r == -1) {
+                if (LOGGING) Log.e(TAG, "[FusionService]RECVTCPX: Socket closed mid-payload");
+                call.reject("[FusionService]Socket closed mid-payload");
+                return;
+            }
+
+            totalRead += r;
+            if (LOGGING) Log.d(TAG, "[FusionService]RECVTCPX: Payload read progress: " + totalRead + "/" + len);
+        }
+
+        long payloadElapsed = System.currentTimeMillis() - payloadStartTime;
+        if (LOGGING) Log.d(TAG, "[FusionService]RECVTCPX: Payload read completed in " + payloadElapsed + " ms");
+
+        byte[] fullResponse = new byte[12 + len];
+        System.arraycopy(header, 0, fullResponse, 0, 12);
+        System.arraycopy(payload, 0, fullResponse, 12, len);
+
+        String hex = toHex(fullResponse);
+        if (LOGGING) {
+            Log.d(TAG, "[FusionService]RECVTCPX: Final response hex length = " + hex.length());
+            Log.d(TAG, "[FusionService]RECVTCPX: Response hex preview: " + hex.substring(0, Math.min(24, hex.length())));
+        }
+
+        if (!isSocketAlive(tcpSocket)) {
+            if (LOGGING) Log.w(TAG, "[FusionService]RECVTCPX: Warning — socket became not alive after read!");
+        } else {
+            if (LOGGING) Log.d(TAG, "[FusionService]RECVTCPX: Socket still alive after full read");
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("data", hex);
+        call.resolve(ret);
+
+    } catch (Exception e) {
+        if (LOGGING) Log.e(TAG, "[FusionService]RECVTCPX: Exception during read", e);
+        call.reject("[FusionService]Failed to read data: " + e.getMessage());
     }
+}
+
+    
+
+ 
+@PluginMethod
+public void checkTcpStatus(PluginCall call) {
+    JSObject ret = new JSObject();
+    boolean alive = isSocketAlive(tcpSocket);
+
+    // Report more detailed state too
+    ret.put("alive", alive);
+    ret.put("connected", tcpSocket != null && tcpSocket.isConnected());
+    ret.put("closed", tcpSocket == null || tcpSocket.isClosed());
+    ret.put("inputShutdown", tcpSocket != null && tcpSocket.isInputShutdown());
+    ret.put("outputShutdown", tcpSocket != null && tcpSocket.isOutputShutdown());
+
+    if (tcpSocket != null) {
+        try {
+            ret.put("remoteAddress", tcpSocket.getInetAddress().toString());
+            ret.put("remotePort", tcpSocket.getPort());
+        } catch (Exception e) {
+            ret.put("remoteAddress", "unknown");
+        }
+    }
+
+    Log.d(TAG, "[FusionService] checkTcpStatus() called, alive=" + alive);
+    call.resolve(ret);
+}
+
+
+private boolean isSocketAlive(Socket socket) {
+    if (socket == null) return false;
+    if (socket.isClosed()) return false;
+    if (!socket.isConnected()) return false;
+    if (socket.isInputShutdown() || socket.isOutputShutdown()) return false;
+    return true;
 }
 
 private static byte[] hexStringToByteArray(String s) {
@@ -281,6 +763,9 @@ private static String bytesToHex(byte[] bytes) {
     public void load() {
         super.load();
         Log.d(TAG, "TorboarPlugin.load() called");
+        
+        // Get secp context for our secp functions.
+        secpCtx = this.createSecp256k1Context();
 
         torDataDir = new File(getContext().getFilesDir(), "tor_data");
 

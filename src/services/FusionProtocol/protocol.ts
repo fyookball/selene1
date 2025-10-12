@@ -5,12 +5,23 @@ export const Protocol = {
   FUSE_ID: new Uint8Array([0x46, 0x55, 0x5a, 0x00]), // 'FUZ\x00'
   MIN_OUTPUT: 10000,
 
+  FUSION_HOST: "45.77.136.9",
+  FUSION_PORT: 8789,
+  PEDERSEN_H_BYTES: new Uint8Array([
+    0x02, 0x43, 0x61, 0x73, 0x68, 0x46, 0x75, 0x73, 0x69, 0x6f, 0x6e, 0x20,
+    0x67, 0x69, 0x76, 0x65, 0x73, 0x20, 0x75, 0x73, 0x20, 0x66, 0x75, 0x6e,
+    0x67, 0x69, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x2e,
+  ]),
+
   // Some essentials:
   MAX_COMPONENT_FEERATE: 5000,
   MIN_EXCESS_FEE_CLIENT: 400,
   MIN_TX_COMPONENTS: 11,
   MAX_EXCESS_FEE: 10000,
   MAX_COMPONENTS: 40,
+  MAX_FEE: 45000,
+  COMPONENT_SIZE_INPUT: 3,
+  COMPONENT_SIZE_OUTPUT: 3,
 
   // Covert connection timeouts
   COVERT_CONNECT_TIMEOUT: 15.0,
