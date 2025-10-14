@@ -1,0 +1,85 @@
+Log.log("Step 1: Creating test private key");
+const privKey = Uint8Array.from(
+  Buffer.from(
+    "1e99423a4ed27608a15a2616fdf2f8ff8c6b3fdfcd1fd9e2a00a1fce8ef0f65c",
+    "hex"
+  )
+);
+
+Log.log("Step 2: Creating pubkey from privKey");
+const { res: resCreate, pubkey: pubkeyRaw } =
+  await Torboar.secp256k1EcPubkeyCreate({
+    scalar: Array.from(privKey),
+  });
+Log.log("resCreate =", resCreate);
+Log.log("pubkey (raw):", pubkeyRaw);
+if (resCreate !== 1 || !pubkeyRaw) throw new Error(" Failed to create pubkey");
+
+const pubkey_buf = Uint8Array.from(pubkeyRaw);
+
+Log.log("Step 3: Serializing pubkey (compressed)");
+const { res: resSer, pubkey: compressedPubkey } =
+  await Torboar.secp256k1EcPubkeySerialize({
+    input: Array.from(pubkey_buf),
+    flags: 0x102,
+  });
+Log.log("resSer =", resSer);
+Log.log("compressedPubkey:", compressedPubkey);
+if (resSer !== 1 || !compressedPubkey)
+  throw new Error(" Failed to serialize pubkey");
+
+const pubkeyFinal = Uint8Array.from(compressedPubkey);
+Log.log(" pubkey (hex): " + Buffer.from(pubkeyFinal).toString("hex"));
+
+Log.log("Step 4: Generating random nonce scalar for R");
+const nonceScalar = randomScalar(Protocol.SECP256K1_ORDER);
+const nonceBytes = intToBytesBE(nonceScalar, 32);
+Log.log("nonceScalar (hex): " + Buffer.from(nonceBytes).toString("hex"));
+
+Log.log("Step 5: Creating R point from nonce scalar");
+const { res: resRCreate, pubkey: R_buf } =
+  await Torboar.secp256k1EcPubkeyCreate({
+    scalar: Array.from(nonceBytes),
+  });
+Log.log("resRCreate =", resRCreate);
+Log.log("R_buf (raw):", R_buf);
+if (resRCreate !== 1 || !R_buf) throw new Error(" Failed to create R");
+
+Log.log("Step 6: Serializing R (compressed)");
+const { res: resRSer, pubkey: R_compressed } =
+  await Torboar.secp256k1EcPubkeySerialize({
+    input: R_buf,
+    flags: 0x102,
+  });
+Log.log("resRSer =", resRSer);
+Log.log("R_compressed:", R_compressed);
+if (resRSer !== 1 || !R_compressed) throw new Error(" Failed to serialize R");
+
+const R = Uint8Array.from(R_compressed);
+Log.log(" R (hex): " + Buffer.from(R).toString("hex"));
+
+Log.log("Step 7: Hashing message 'hello world'");
+const msgHash = await sha256(
+  Uint8Array.from(Buffer.from("hello world", "utf8"))
+);
+Log.log(" msgHash (hex): " + Buffer.from(msgHash).toString("hex"));
+
+Log.log("Step 8: Creating BlindSignatureRequest");
+const req = new BlindSignatureRequest({
+  torboar: Torboar,
+  pubkey: pubkeyFinal,
+  R,
+  messageHash: msgHash,
+});
+Log.log(" BlindSignatureRequest created");
+
+Log.log("Step 9: Calling req.init()");
+await req.init();
+Log.log(" req.init() completed");
+
+const { e, enew } = req.getRequest();
+
+Log.log("e is ", e);
+Log.log("enew is ", enew);
+Log.log("type of e is ", typeof e);
+Log.log("type of enew is ", typeof enew);

@@ -1,6 +1,23 @@
 // Manages a persistent FusionService that continuously checks
 // whether a new fusion round should start, and runs it safely (no overlap).
 
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable prefer-destructuring */
+/* eslint-disable no-restricted-syntax */
+/* eslint-disable @typescript-eslint/no-unused-vars */ // CAN REMOVE LATER
+/* eslint-disable prefer-const */ // CAN REMOVE LATER
+/* eslint-disable no-await-in-loop */
+/* eslint-disable no-promise-executor-return */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-plusplus */
+/* eslint-disable no-else-return*/
+/* eslint-disable no-undef-init */
+/* eslint-disable no-empty */
+/* eslint-disable prefer-template */
+
+import * as secp256k1 from "@noble/secp256k1";
+import Long from "long";
+
 import { Plugins } from "@capacitor/core";
 import LogService from "@/services/LogService";
 import UtxoManagerService from "@/services/UtxoManagerService";
@@ -8,16 +25,34 @@ import { Protocol } from "./FusionProtocol/protocol";
 import { block_checkpoints } from "@/util/block_checkpoints";
 import AddressManagerService from "@/services/AddressManagerService";
 import { WalletEntity } from "@/services/WalletManagerService";
+import { CovertSubmitter } from "./FusionProtocol/covert";
+
+import { Commitment, PedersenSetup } from "./FusionProtocol/pedersen";
+import HdNodeService from "@/services/HdNodeService";
+import { convertCashAddress } from "../util/cashaddr";
+import { BlindSignatureRequest } from "./FusionProtocol/schnorr";
 
 import {
+  genKeypair,
   calcInitialHash,
+  randomOutputsForTier,
   componentFee,
   sizeOfInput,
-  randomOutputsForTier,
-} from "@/services/FusionProtocol/util";
+  sizeOfOutput,
+  sha256,
+  hexToBytes,
+  hash160,
+  buildP2PKHScript,
+  randomScalar,
+  intToBytesBE,
+} from "./FusionProtocol/util";
 
 const Log = LogService("FusionService");
+
+const secp = secp256k1;
+
 const { Torboar } = Plugins;
+const { CURVE } = secp256k1;
 
 type Utxo = {
   address: string;
@@ -28,6 +63,35 @@ type Utxo = {
 };
 
 type ServerHelloType = import("@/proto/fusion").fusion.ServerHello;
+type ComponentType = import("@/proto/fusion").fusion.Component;
+type InitialCommitmentType = import("@/proto/fusion").fusion.InitialCommitment;
+type ProofType = import("@/proto/fusion").fusion.Proof;
+
+export interface GenComponentsResult {
+  initialCommitments: Uint8Array[];
+  componentIndices: number[];
+  serializedComponents: Uint8Array[];
+  proofs: ProofType[];
+  commPrivKeys: Uint8Array[];
+  totalAmount: bigint;
+  pedersenTotalNonce: Uint8Array;
+}
+
+// Fusion Protocol Components (from fusion.proto)
+
+export type ComponentInput = {
+  prev_txid: Uint8Array;
+  prev_index: number; // uint32
+  pubkey: Uint8Array; // compressed pubkey
+  amount: number; // uint64
+};
+
+export type ComponentOutput = {
+  scriptpubkey: Uint8Array;
+  amount: number; // uint64
+};
+
+//  ----------------------------------------------------
 
 export class FusionService {
   private _isRunning = false;
@@ -80,11 +144,15 @@ export class FusionService {
 
   private _outputs: Array<[number, string]> = [];
 
+  private _hdNode: ReturnType<typeof HdNodeService>;
+
   constructor(wallet: WalletEntity) {
     this._wallet = wallet;
     this._walletHash = wallet.walletHash;
     this._utxoManager = UtxoManagerService(this._walletHash);
+    this._hdNode = HdNodeService(wallet);
     Log.log("FusionService initialized with wallet:", this._walletHash);
+    Log.log("[FusionService] HdNodeService instance:", this._hdNode);
   }
 
   private static _toHex(u8: Uint8Array): string {
@@ -108,6 +176,15 @@ export class FusionService {
     if (this._isRunning) {
       Log.log("FusionService already running");
       return;
+    }
+
+    try {
+      Log.log("Calling Torboar.startTor...");
+      await Torboar.startTor();
+      Log.log("✅ Torboar.startTor() succeeded");
+    } catch (e) {
+      Log.error("❌ Torboar.startTor() failed", e);
+      throw e;
     }
 
     this._isRunning = true;
@@ -141,10 +218,10 @@ export class FusionService {
           .catch((err) => Log.error("Fusion round failed", err))
           .finally(() => {
             this._currentRound = null;
-            //this._scheduleNextRound();  //DEBUGGING. IF WE WANT PERSISTENT FUSIONS, UNCOMMENT.
+            //this._scheduleNextRound(); //Schedule next round
           });
       } else {
-        //this._scheduleNextRound();  //DEBUGGING. IF WE WANT PERSISTENT FUSIONS, UNCOMMENT.
+        //this._scheduleNextRound();  //DEBUGGING. i think we dont need this...??.
       }
     }, 10000); // 10-second interval between checks
   }
@@ -223,6 +300,7 @@ export class FusionService {
   }
 
   public allocateOutputs(): void {
+    Log.log("------------.allocating this many inputs: ", this._inputs.length);
     const numInputs = this._inputs.length;
 
     // Compute maximum outputs allowed
@@ -313,17 +391,24 @@ export class FusionService {
         this._inputs.length + adjustedOutputs.length >
         Protocol.MAX_COMPONENTS
       ) {
+        Log.log("probelm with inputs and outputs length.....................");
         //double check this logic
         return;
       }
+
+      Log.log(`Attempting allocation for tier ${scale}`);
+      Log.log("adjustedOutputs =", adjustedOutputs);
+      Log.log("adjustedOutputs.length =", adjustedOutputs.length);
 
       excessFees[scale] = sumInputsValue - inputFees - reducedAvailForOutputs;
       tierOutputs[scale] = adjustedOutputs;
     });
 
+    Log.log("=== Dumping tierOutputs ===");
     Object.entries(tierOutputs).forEach(([scale, outputs]) => {
-      Log.log(`zzz Tier ${scale}: outputs = ${outputs.join(", ")}`);
+      Log.log(`Tier ${scale}: [${outputs.join(", ")}]`);
     });
+    Log.log("=== End dump ===");
 
     //  Safety values
     this._tierOutputs = tierOutputs;
@@ -336,6 +421,335 @@ export class FusionService {
     const outAddrs = addrMgr.getUnusedAddresses(outAmounts.length, 1);
     return outAddrs;
   }
+
+  private async createInputComponents(
+    selectedUtxos: Utxo[]
+  ): Promise<ComponentInput[]> {
+    if (!Array.isArray(selectedUtxos)) {
+      throw new Error("selectedUtxos is not an array");
+    }
+
+    return Promise.all(
+      selectedUtxos.map(async (utxo, idx) => {
+        if (!utxo || typeof utxo !== "object") {
+          throw new Error(
+            `Invalid utxo at index ${idx}: ${JSON.stringify(utxo)}`
+          );
+        }
+
+        const requiredFields = ["txid", "tx_pos", "address", "amount"];
+        for (const field of requiredFields) {
+          if (!(field in utxo)) {
+            throw new Error(`Missing field '${field}' in UTXO at index ${idx}`);
+          }
+        }
+
+        const publicKeyHex = this._hdNode.getAddressPublicKey(utxo.address);
+        const pubkey = Uint8Array.from(Buffer.from(publicKeyHex, "hex"));
+        const prev_txid = Uint8Array.from(
+          Buffer.from(utxo.txid, "hex")
+        ).reverse();
+
+        const prev_index = Long.fromValue(utxo.tx_pos);
+        const amount = Long.fromValue(utxo.amount);
+
+        if (!Long.isLong(prev_index) || !Long.isLong(amount)) {
+          throw new Error(
+            `Long conversion failed at index ${idx}: prev_index=${utxo.tx_pos}, amount=${utxo.amount}`
+          );
+        }
+
+        return {
+          prev_txid,
+          prev_index,
+          pubkey,
+          amount,
+        };
+      })
+    );
+  }
+
+  private async createOutputComponents(
+    outputs: Array<[number, AddressEntity]>
+  ): Promise<ComponentOutput[]> {
+    return Promise.all(
+      outputs.map(async ([amount, addressObj]) => {
+        const publicKeyHex = this._hdNode.getAddressPublicKey(
+          addressObj.address
+        );
+        const pubkey = Uint8Array.from(Buffer.from(publicKeyHex, "hex"));
+
+        const pubkeyHash = await hash160(pubkey);
+        const scriptPubKey = await buildP2PKHScript(pubkeyHash);
+
+        return {
+          scriptpubkey: scriptPubKey,
+          amount,
+        };
+      })
+    );
+  }
+
+  //-------------------------------------------------
+  // GEN COMPONENTS
+  //--------------------------------------
+
+  private async genComponents(
+    setup: PedersenSetup,
+    numBlanks: number,
+    inputs: ComponentInput[],
+    outputs: ComponentOutput[],
+    feerate: number,
+    randomSalts: Uint8Array[]
+  ): Promise<GenComponentsResult> {
+    if (numBlanks < 0) throw new Error("numBlanks < 0");
+
+    if (!this._fusion) {
+      throw new Error("Fusion proto not loaded; call start() first");
+    }
+
+    Log.log("fubar 31");
+    const components: Array<[ComponentType, bigint]> = [];
+
+    Log.log("fubar 32");
+
+    //HELPER FOR DEBUG TOUINT8
+    function toUint8(x: any): Uint8Array {
+      return x instanceof Uint8Array ? x : new Uint8Array(x);
+    }
+
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+      const fee = componentFee(sizeOfInput(), feerate);
+
+      const safeInput = {
+        prev_txid: toUint8(input.prev_txid),
+        prev_index: Number(input.prev_index),
+        pubkey: toUint8(input.pubkey),
+        amount: Number(input.amount),
+      };
+
+      const safeObject = {
+        component: { input: safeInput },
+        salt_commitment: new Uint8Array(32), // placeholder, overwritten later
+      };
+
+      const comp = this._fusion.Component.create(safeObject);
+      Log.log(
+        `fubar 32.inputCreated [${i}]`,
+        this._fusion.Component.toObject(comp)
+      );
+
+      components.push([comp, BigInt(safeInput.amount) - BigInt(fee)]);
+    }
+
+    Log.log("fubar 33");
+
+    // Handle output components
+    for (const output of outputs) {
+      const fee = componentFee(sizeOfOutput(), feerate);
+      const comp = this._fusion.Component.create({
+        component: {
+          output: {
+            scriptpubkey: output.scriptpubkey,
+            amount: output.amount,
+          },
+        },
+        salt_commitment: new Uint8Array(32), // placeholder, overwritten later
+      }) as ComponentType;
+      components.push([comp, -(BigInt(output.amount) + BigInt(fee))]);
+    }
+
+    Log.log("fubar 34");
+    // Handle blank components
+    for (let i = 0; i < numBlanks; i++) {
+      const comp = this._fusion.Component.create({
+        component: { blank: {} },
+        salt_commitment: new Uint8Array(32), // placeholder, overwritten later
+      }) as ComponentType;
+      components.push([comp, 0n]);
+    }
+
+    let sumNonce = 0n;
+    let sumAmounts = 0n;
+    Log.log("fubar 35");
+    const resultList: Array<
+      [Uint8Array, number, Uint8Array, ProofType, Uint8Array]
+    > = [];
+
+    Log.log("fubar 36");
+
+    for (let cnum = 0; cnum < components.length; cnum++) {
+      const [comp, commitAmount] = components[cnum];
+      Log.log(`fubar 36.1: processing component ${cnum}`);
+
+      const salt = randomSalts[cnum];
+      if (!(salt instanceof Uint8Array)) {
+        throw new Error(`Salt at index ${cnum} is not a Uint8Array`);
+      }
+
+      let saltCommit: Uint8Array;
+      try {
+        saltCommit = await sha256(salt);
+      } catch (e) {
+        Log.error("fubar 36.1a: sha256(salt) failed", e);
+        throw e;
+      }
+
+      Log.log(`fubar -------comp [${cnum}]`, JSON.stringify(comp));
+
+      const subcomp = comp.component;
+
+      Log.log(`fubar 36.rawsub [${cnum}]`, JSON.stringify(subcomp));
+      let componentType = "unknown";
+      if (subcomp?.input) {
+        componentType = "input";
+      } else if (subcomp?.output) {
+        componentType = "output";
+      } else if (subcomp?.blank) {
+        componentType = "blank";
+      }
+
+      Log.log(`fubar 36.typecheck [${cnum}] type=${componentType}`);
+
+      const compWithSaltCommit: any = {
+        salt_commitment: saltCommit,
+        ...(subcomp?.input ? { input: { ...subcomp.input } } : {}),
+        ...(subcomp?.output ? { output: { ...subcomp.output } } : {}),
+        ...(subcomp?.blank ? { blank: {} } : {}),
+      };
+
+      let compser: Uint8Array;
+      try {
+        const compMsg = this._fusion.Component.create(compWithSaltCommit);
+        if (!compMsg || typeof compMsg !== "object") {
+          throw new Error("Component.create returned invalid object");
+        }
+        Log.log(
+          `fubar 36.encodePrecheck [${cnum}] created type=${compMsg.constructor?.name}`
+        );
+        compser = this._fusion.Component.encode(compMsg).finish();
+        Log.log(`fubar 36.encodeSuccess [${cnum}] length=${compser.length}`);
+      } catch (e) {
+        Log.error("fubar 36.encodeFailure", e, {
+          cnum,
+          compWithSaltCommit,
+        });
+        throw e;
+      }
+
+      Log.log("fubar 36.aaa");
+      // ---- Pedersen + Commitments ----
+      const pedersenCommitment = new Commitment(setup, commitAmount);
+      sumNonce += pedersenCommitment.nonce;
+      sumAmounts += commitAmount;
+
+      Log.log("fubar 36.bbb");
+
+      const [privkey, pubkeyUncompressed, pubkeyCompressed] = genKeypair(secp);
+
+      Log.log("fubar 36.bbb1");
+      let saltedHash: Uint8Array;
+      try {
+        Log.log("fubar 36.bbb2");
+        saltedHash = await sha256(new Uint8Array([...salt, ...compser]));
+      } catch (e) {
+        Log.error("fubar 36.3: sha256(salt+compser) failed", e);
+        throw e;
+      }
+
+      Log.log("fubar 36.ccc");
+      let ic: InitialCommitmentType;
+      try {
+        ic = this._fusion.InitialCommitment.create({
+          salted_component_hash: saltedHash,
+          amount_commitment: pedersenCommitment.pointPUncompressed,
+          communication_key: pubkeyCompressed,
+        }) as InitialCommitmentType;
+      } catch (e) {
+        Log.error("fubar 36.4: InitialCommitment.create failed", e);
+        throw e;
+      }
+
+      Log.log("fubar 36.ddd");
+
+      let icser: Uint8Array;
+      try {
+        icser = this._fusion.InitialCommitment.encode(ic).finish();
+      } catch (e) {
+        Log.error("fubar 36.5: InitialCommitment.encode failed", e);
+        throw e;
+      }
+
+      let proof: ProofType;
+      try {
+        proof = this._fusion.Proof.create({
+          component_idx: cnum,
+          salt,
+          pedersen_nonce: pedersenCommitment.nonceBytes, // 👈 no parentheses
+        }) as ProofType;
+      } catch (e) {
+        Log.error("fubar 36.6: Proof.create failed", e);
+        throw e;
+      }
+
+      resultList.push([icser, cnum, compser, proof, privkey]);
+
+      Log.log("fubar 37a");
+    }
+
+    Log.log("fubar 37b");
+
+    // Sort by serialized InitialCommitment
+    resultList.sort((a, b) => {
+      const aa = a[0];
+      const bb = b[0];
+      for (let i = 0; i < Math.min(aa.length, bb.length); i++) {
+        if (aa[i] !== bb[i]) return aa[i] - bb[i];
+      }
+      return aa.length - bb.length;
+    });
+
+    Log.log("fubar 38");
+    // Unpack results
+    const initialCommitments: Uint8Array[] = [];
+    const componentIndices: number[] = [];
+    const serializedComponents: Uint8Array[] = [];
+    const proofs: ProofType[] = [];
+    const commPrivKeys: Uint8Array[] = [];
+
+    Log.log("fubar 39");
+    for (const [icser, cnum, compser, proof, privkey] of resultList) {
+      initialCommitments.push(icser);
+      componentIndices.push(cnum);
+      serializedComponents.push(compser);
+      proofs.push(proof);
+      commPrivKeys.push(privkey);
+    }
+
+    Log.log("fubar 40");
+    sumNonce %= Protocol.SECP256K1_ORDER;
+
+    const pedersenTotalNonce = intToBytesBE(sumNonce, 32);
+
+    Log.log("fubar 41");
+    return {
+      initialCommitments,
+      componentIndices,
+      serializedComponents,
+      proofs,
+      commPrivKeys,
+      totalAmount: sumAmounts,
+      pedersenTotalNonce,
+    };
+  }
+
+  /* eslint-enable class-methods-use-this, 
+                  no-restricted-syntax, 
+                  operator-assignment */
+
+  // END GEN COMPONENTS
+  //---------------------------------------
 
   private async _sendGreet(): Promise<ServerHelloType | undefined> {
     const host = "45.77.136.9"; // for dev, DNS can be flaky in emulator
@@ -464,27 +878,36 @@ export class FusionService {
     return serverHello;
   } // END OF FUNCTION SEND GREET
 
-  //------------------------------------------------------------
+  //-----------REGISTER AND WAIT----------------------
+
+  //-----------REGISTER AND WAIT----------------------
   /* eslint-disable no-await-in-loop */
   /* eslint-disable no-constant-condition, no-else-return */
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  /* eslint-disable no-promise-executor-return */
+  /* eslint-disable no-void */
+  /* eslint-disable no-console */
+  /* eslint-disable no-continue */
+
   private async _registerAndWait(
     serverHello: ServerHello,
     selectedUtxos: Utxo[]
   ): Promise<void> {
+    Log.log("=== Dumping tierOutputs in REGWAIT ===");
+    Object.entries(this._tierOutputs).forEach(([scale, outputs]) => {
+      Log.log(`Tier ${scale}: [${outputs.join(", ")}]`);
+    });
+    Log.log("=== End dump ===");
+
     if (!this._fusion) throw new Error("Fusion proto not loaded");
 
-    Log.log("selectedutxo ", selectedUtxos); //not sure if we need this but use it or linter complain.
+    Log.log("[FusionService] selectedUtxos", selectedUtxos);
 
-    // Get the tier list from the server.
-    const tiersSorted = [...serverHello.tiers].sort((a, b) => a - b);
-    if (!tiersSorted.length) {
-      throw new Error("No outputs available at any tier");
-    }
+    const tiersSorted = Object.keys(this._tierOutputs)
+      .map(Number)
+      .sort((a, b) => a - b);
 
-    // Build PoolTag (part of JoinPoolsMsg)
     const randomTag = crypto.getRandomValues(new Uint8Array(20));
-
-    // Assume limit 1 -- later we can implement "fuse as two players"
     const tags = [
       this._fusion.JoinPools.PoolTag.create({
         id: randomTag,
@@ -492,18 +915,15 @@ export class FusionService {
       }),
     ];
 
-    // Create JoinPools message
     const joinPoolsMsg = this._fusion.JoinPools.create({
       tiers: tiersSorted,
       tags,
     });
 
-    // wrap in ClientMessage for sending
     const clientMessage = this._fusion.ClientMessage.create({
       joinpools: joinPoolsMsg,
     });
 
-    // encode and send
     const payloadBytes =
       this._fusion.ClientMessage.encode(clientMessage).finish();
 
@@ -524,60 +944,175 @@ export class FusionService {
     frameBytes.set(lengthBytes, MAGIC.length);
     frameBytes.set(payloadBytes, MAGIC.length + lengthBytes.length);
 
+    Log.log("[FusionService] Sending JoinPools message to server...");
     await Torboar.sendTcpData({ data: FusionService._toHex(frameBytes) });
 
-    // Now wait for either TierStatusUpdate or FusionBegin.
+    let gotFusionBegin = false;
+    let noMessageCounter = 0;
+    const MAX_EMPTY_MESSAGES = 20;
 
-    /* eslint-disable no-promise-executor-return */
     while (true) {
-      Log.log("Waiting for TierStatusUpdate or FusionBegin...");
+      Log.log("top of register and wait while loop...");
+      try {
+        const tcpStatus = await Torboar.checkTcpStatus();
+        const alive = tcpStatus.alive;
+
+        Log.log(`[FusionService] TCP status: alive=${alive}`, tcpStatus);
+        if (!alive) {
+          Log.log(
+            "[FusionService] TCP socket is no longer alive — restarting Fusion"
+          );
+          //   break out of this loop so you can restart the fusion outside
+          break;
+        }
+      } catch (err) {
+        Log.error("[FusionService] Failed to get TCP status", err);
+      }
+
       let result;
       try {
-        result = await Promise.race([
-          Torboar.receiveTcpData(),
-          new Promise((_, reject) => {
-            setTimeout(
-              () => reject(new Error("Timed out waiting for server")),
-              10000
-            );
-          }),
-        ]);
+        // ✅ Java-side timeout = 5000 ms
+        const pluginCall = Torboar.receiveTcpData({ timeoutMs: 5000 });
+
+        // ✅ JS-side fallback timeout = 10 s
+        const fallback = new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Timed out waiting for server")),
+            10000
+          )
+        );
+
+        result = await Promise.race([pluginCall, fallback]);
       } catch (err) {
-        Log.error("Error while waiting for server message:", err);
-        // break or continue ...maybe we should break.
-        // eslint-disable-next-line no-continue
+        const msg = err?.message || err.toString();
+        Log.error(
+          "[FusionService] Error while waiting for server message:",
+          msg
+        );
+
+        if (
+          msg.includes("Socket closed") ||
+          msg.includes("connection") ||
+          msg.includes("ECONNRESET")
+        ) {
+          Log.error("[FusionService] Fatal TCP error — exiting receive loop");
+          break;
+        }
+
+        noMessageCounter += 1;
+        if (!gotFusionBegin && noMessageCounter >= MAX_EMPTY_MESSAGES) {
+          throw new Error(
+            "Gave up waiting for FusionBegin after multiple retries"
+          );
+        }
         continue;
       }
-      /* eslint-enable no-promise-executor-return */
 
       const hexResponse = (result as { data: string }).data;
       const responseBytes = FusionService._fromHex(hexResponse);
       const payload = responseBytes.slice(12); // drop magic+len
 
+      Log.log(
+        `[FusionService] payload length = ${payload.length} bytes (before decode)`
+      );
+      Log.log(
+        "[FusionService] payload hex preview:",
+        Array.from(payload.slice(0, 32))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(" ")
+      );
+
       try {
-        // decode outer wrapper
         const serverMsg = this._fusion.ServerMessage.decode(payload);
+
+        const keys = Object.keys(serverMsg).filter(
+          (k) => serverMsg[k] !== null && serverMsg[k] !== undefined
+        );
+        Log.log("[FusionService] Decoded ServerMessage keys:", keys);
+
+        Log.log(
+          "[FusionService] ServerMessage object:",
+          JSON.stringify(
+            this._fusion.ServerMessage.toObject(serverMsg, {
+              longs: String,
+              enums: String,
+              bytes: String,
+              defaults: true,
+              arrays: true,
+              objects: true,
+            }),
+            null,
+            2
+          )
+        );
+
+        noMessageCounter = 0;
+
         if (serverMsg.fusionbegin) {
           const fb = serverMsg.fusionbegin;
           Log.log("Got FusionBegin:", fb);
-          // store tier, covert_domain etc. from fusionBegin
+          Log.log("fubar 000 fb toJSON:", JSON.stringify(fb.toJSON(), null, 2));
 
-          // Check server's declared unix time
-          const clockMismatch = fb.serverTime - Date.now() / 1000;
+          const localTimeSec = Date.now() / 1000;
+          Log.log("fubar 0");
+          Log.log("fubar 0.1 fb.servertime ", fb.serverTime);
+
+          const clockMismatch = fb.serverTime - localTimeSec;
+
+          Log.log(
+            `zzz FusionBegin times: serverTime=${fb.serverTime} localTime=${localTimeSec} mismatch=${clockMismatch.toFixed(
+              3
+            )} seconds`
+          );
+
           if (Math.abs(clockMismatch) > Protocol.MAX_CLOCK_DISCREPANCY) {
+            Log.error(
+              `Clock mismatch too large: ${clockMismatch.toFixed(
+                3
+              )} seconds (server=${fb.serverTime}, local=${localTimeSec})`
+            );
             throw new Error(
-              `Clock mismatch too large: ${clockMismatch.toFixed(3)}`
+              `Clock mismatch too large: ${clockMismatch.toFixed(3)} seconds`
             );
           }
 
-          // Save values in the class for later phases
+          Log.log("fubar 1");
+
+          // --- Fusion Begin Response ---
+          Log.log("[FusionService] ======<<<<<<<<<<<<<<<<<<<<<<<<<<<======");
+          Log.log("[FusionService] fb.tier =", fb.tier);
+          Log.log("[FusionService] fb.covertDomain =", fb.covertDomain);
+          Log.log("[FusionService] fb.covertPort =", fb.covertPort);
+          Log.log("[FusionService] fb.covertSsl =", fb.covertSsl);
+          Log.log("[FusionService] fb.serverTime =", fb.serverTime);
+          Log.log(
+            "[FusionService] available tier keys in this._tierOutputs:",
+            Object.keys(this._tierOutputs).join(", ")
+          );
+          Log.log(
+            "[FusionService] this._tierOutputs full dump:",
+            JSON.stringify(this._tierOutputs)
+          );
+          Log.log(
+            "[FusionService] this._safetyExcessFees full dump:",
+            JSON.stringify(this._safetyExcessFees)
+          );
+          Log.log("======================================================");
+
           this._tier = fb.tier;
           this._covertDomain = fb.covertDomain;
           this._covertPort = fb.covertPort;
+          Log.log(
+            "fubar covertdomain is ",
+            fb.covertDomain,
+            " port is ",
+            fb.covertPort
+          );
           this._covertSsl = fb.covertSsl;
           this._beginTime = fb.serverTime;
-          this._tFusionBegin = performance.now() / 1000; // local monotonic time in seconds
+          this._tFusionBegin = performance.now() / 1000; // local monotonic time
 
+          Log.log("fubar 2");
           const hash = calcInitialHash(
             this._tier,
             this._covertDomain!,
@@ -585,72 +1120,624 @@ export class FusionService {
             this._covertSsl!,
             this._beginTime!
           );
-
           this._lastHash = hash;
 
-          // Build outputs for this tier
           const outAmounts = this._tierOutputs[this._tier] ?? [];
           const outAddrs = await this._grabChangeAddresses(outAmounts);
+          console.log("[FusionService] typeof address:", typeof outAddrs[0]);
+          console.log("[FusionService] address value:", outAddrs[0]);
 
+          console.log(
+            "[FusionService] typeof outamountss:",
+            typeof outAmounts[0]
+          );
+          console.log("[FusionService] address value:", outAmounts[0]);
           this._reservedAddresses = outAddrs;
           this._outputs = outAmounts.map((amt, i) => [amt, outAddrs[i]]);
+
+          Log.log("=== Dumping FIRST TIME this._outputs ===");
+          this._outputs.forEach((entry, idx) => {
+            const [amt, addr] = entry;
+            Log.log(
+              `output[${idx}] amount=`,
+              amt.toString(),
+              "addressEntity=",
+              JSON.stringify(addr)
+            );
+          });
+          Log.log("=== End dump ===");
           this._safetyExcessFee = this._safetyExcessFees[this._tier] ?? 0;
 
           Log.log(
             `starting fusion rounds at tier ${this._tier}: ${this._inputs.length} inputs and ${this._outputs.length} outputs`
           );
 
-          return; // exit the loop
+          Log.log("fubar 3");
+          gotFusionBegin = true;
+
+          Log.log(">>> about to call startCovert");
+
+          // eslint-disable-next-line no-void
+          void FusionService._startCovert({
+            covertDomain: this._covertDomain!,
+            covertPort: this._covertPort!,
+            covertSsl: this._covertSsl!,
+            numComponents: this._numComponents,
+            tFusionBegin: this._tFusionBegin!,
+          });
+
+          Log.log("yyy done with covert setup");
+
+          // eslint-disable-next-line no-continue
+          continue;
+        } else if (serverMsg.startround) {
+          Log.log("Got StartRound:", serverMsg.startround);
+
+          const pedersenSetup = new PedersenSetup(Torboar); // you provide torboar instance
+          await pedersenSetup.init();
+          Log.log("PedersenSetup done!");
+
+          // -- Timing setup --
+          const covert_T0 = performance.now() / 1000; // seconds monotonic
+          const covertClock = () => performance.now() / 1000 - covert_T0;
+
+          const serverTime = serverMsg.startround.serverTime;
+          const localUnixTime = Date.now() / 1000;
+          const clockMismatch = serverTime - localUnixTime;
+          Log.log("fubar 20");
+          if (Math.abs(clockMismatch) > Protocol.MAX_CLOCK_DISCREPANCY) {
+            throw new Error(
+              `Clock mismatch too large: ${clockMismatch.toFixed(3)}s (server=${serverTime}, local=${localUnixTime})`
+            );
+          }
+
+          if (this._tFusionBegin !== null) {
+            const warmupLag =
+              covert_T0 - this._tFusionBegin - Protocol.WARMUP_TIME;
+            if (Math.abs(warmupLag) > Protocol.WARMUP_SLOP) {
+              throw new Error(
+                `Warmup time mismatch: |${warmupLag.toFixed(3)}s| > ${Protocol.WARMUP_SLOP}`
+              );
+            }
+            this._tFusionBegin = null;
+          }
+
+          Log.log("fubar 21");
+
+          Log.log("inputs length:", this._inputs.length);
+          Log.log("outputs length:", this._outputs.length);
+
+          this._inputs.slice(0, 3).forEach((input, i) => {
+            Log.log(`input[${i}] =`, input);
+            Log.log(`typeof input[${i}].amount:`, typeof input.amount);
+          });
+
+          Log.log("this._componentFeerate:", this._componentFeerate);
+          Log.log("sizeOfInput():", sizeOfInput());
+          Log.log("sizeOfOutput():", sizeOfOutput());
+
+          const compFeeIn = componentFee(sizeOfInput(), this._componentFeerate);
+          const compFeeOut = componentFee(
+            sizeOfOutput(),
+            this._componentFeerate
+          );
+
+          Log.log("componentFee input:", compFeeIn);
+          Log.log("componentFee output:", compFeeOut);
+
+          const inputFees = this._inputs.length * compFeeIn;
+          Log.log("inputFees:", inputFees);
+
+          Log.log("fubar 21a");
+
+          const outputFees = this._outputs.length * compFeeOut;
+          Log.log("outputFees:", outputFees);
+
+          Log.log("fubar 21b");
+
+          let sumIn = 0n;
+          try {
+            sumIn = this._inputs.reduce(
+              (sum, input: any) => sum + BigInt(input.amount),
+              0n
+            );
+            Log.log("sumIn:", sumIn.toString());
+          } catch (e) {
+            Log.log("Error during sumIn reduce:", e);
+          }
+
+          Log.log("=== Dumping this._outputs ===");
+          this._outputs.forEach((entry, idx) => {
+            const [amt, addr] = entry;
+            Log.log(
+              `output[${idx}] amount=`,
+              amt.toString(),
+              "addressEntity=",
+              JSON.stringify(addr)
+            );
+          });
+          Log.log("=== End dump ===");
+
+          let sumOut = 0n;
+          sumOut = this._outputs.reduce(
+            (sum, [amt, _]) => sum + BigInt(amt),
+            0n
+          );
+
+          Log.log("fubar 21c");
+
+          let totalFee = 0n;
+          let excessFee = 0n;
+          try {
+            totalFee = sumIn - sumOut;
+            excessFee = totalFee - BigInt(inputFees + outputFees);
+            Log.log("totalFee:", totalFee.toString());
+            Log.log("excessFee:", excessFee.toString());
+          } catch (e) {
+            Log.log("Error computing fees:", e);
+          }
+
+          Log.log("fubar 22");
+          Log.log("sumIn:", sumIn.toString());
+          Log.log(
+            "_safetySumIn:",
+            this._safetySumIn?.toString?.() ?? this._safetySumIn
+          );
+          Log.log("sumIn === _safetySumIn:", sumIn === this._safetySumIn);
+
+          Log.log("excessFee:", excessFee.toString());
+          Log.log(
+            "_safetyExcessFee:",
+            this._safetyExcessFee?.toString?.() ?? this._safetyExcessFee
+          );
+          Log.log(
+            "excessFee === _safetyExcessFee:",
+            excessFee === this._safetyExcessFee
+          );
+
+          Log.log("Protocol.MAX_EXCESS_FEE:", Protocol.MAX_EXCESS_FEE);
+          Log.log(
+            "excessFee <= MAX_EXCESS_FEE:",
+            excessFee <= Protocol.MAX_EXCESS_FEE
+          );
+
+          Log.log("Protocol.MAX_FEE:", Protocol.MAX_FEE);
+          Log.log("totalFee:", totalFee.toString());
+          Log.log("totalFee <= MAX_FEE:", totalFee <= Protocol.MAX_FEE);
+
+          const safeties = [
+            Number(sumIn) === Number(this._safetySumIn),
+            Number(excessFee) === Number(this._safetyExcessFee),
+            Number(excessFee) <= Protocol.MAX_EXCESS_FEE,
+            Number(totalFee) <= Protocol.MAX_FEE,
+          ];
+
+          Log.log("fubar 23");
+
+          if (safeties.includes(false)) {
+            Log.log("fubar 23b");
+            throw new Error(`Funds re-check failed: ${safeties.join(", ")}`);
+          }
+
+          Log.log("fubar 23");
+
+          if (safeties.includes(false)) {
+            Log.log("fubar 23b");
+
+            throw new Error(`Funds re-check failed: ${safeties.join(", ")}`);
+          }
+
+          // -- Extract round data --
+          Log.log("fubar 23c");
+
+          try {
+            this._roundPubKey = serverMsg.startround.roundPubkey;
+            this._blindNoncePoints = serverMsg.startround.blindNoncePoints;
+
+            Log.log("fubar 23d");
+
+            if (!this._blindNoncePoints) {
+              Log.error(
+                "[FusionService] blindNoncePoints is undefined or null."
+              );
+              throw new Error(
+                "Missing blindNoncePoints in serverMsg.startround"
+              );
+            }
+
+            Log.log(
+              `[FusionService] Received ${this._blindNoncePoints.length} blind nonce points:`
+            );
+
+            this._blindNoncePoints.forEach((point, index) => {
+              Log.log(
+                `[FusionService] blindNonce[${index}]: ${Buffer.from(point).toString("hex")}`
+              );
+            });
+
+            if (this._blindNoncePoints.length !== this._numComponents) {
+              throw new Error(
+                `blindNoncePoints length mismatch: got ${this._blindNoncePoints.length}, expected ${this._numComponents}`
+              );
+            }
+
+            Log.log("fubar 25");
+          } catch (e) {
+            Log.error("[FusionService] Error while extracting round data:", e);
+            throw e;
+          }
+
+          // -- Save covert start time function --
+          this._covert_T0 = covert_T0;
+          this._covertClock = covertClock;
+
+          Log.log("fubar 26");
+
+          Log.log("End StartRound. sanity checks passed.");
+          Log.log("Ready to build components.");
+
+          // -- Build Component Inputs --
+          Log.log(
+            "[FusionService] Building ComponentInputs from selected UTXOs..."
+          );
+
+          Log.log("[FusionService] this._inputs before build:", this._inputs);
+          Log.log(
+            "[FusionService] typeof this._inputs[0]:",
+            typeof this._inputs[0]
+          );
+          Log.log("[FusionService] this._inputs[0]:", this._inputs[0]);
+
+          // debug: Check if this._inputs is an array of UTXOs or [utxo, pubkey] tuples
+          const utxos: Utxo[] = Array.isArray(this._inputs[0])
+            ? this._inputs.map(([utxo]) => utxo)
+            : this._inputs;
+
+          Log.log("[FusionService] typeof this._hdNode:", typeof this._hdNode);
+          Log.log(
+            "[FusionService] this._hdNode keys:",
+            Object.keys(this._hdNode || {})
+          );
+          Log.log(
+            "[FusionService] typeof this._hdNode.getAddressPublicKey:",
+            typeof this._hdNode?.getAddressPublicKey
+          );
+
+          // Build input components safely
+          let inputComponents: ComponentInput[] = [];
+
+          try {
+            inputComponents = await this.createInputComponents(utxos);
+
+            Log.log(
+              "[FusionService] ComponentInputs ready: count=",
+              inputComponents.length
+            );
+
+            // Optionally store for later steps in FusionService
+            this._inputComponents = inputComponents;
+          } catch (err) {
+            Log.error("[FusionService] error with createInputComponents:", err);
+            await Haptic.error?.();
+            // bubble up or handle locally
+            throw err;
+          }
+
+          // Only log count again if we actually succeeded
+          if (inputComponents && inputComponents.length > 0) {
+            Log.log(
+              `[FusionService] ComponentInputs ready: count=${inputComponents.length}`
+            );
+          } else {
+            Log.warn("[FusionService] No ComponentInputs were created.");
+          }
+
+          Log.log("fubar 27");
+
+          // -- Build Component Outputs --
+          Log.log(
+            "[FusionService] Building ComponentOutputs from output map..."
+          );
+          const outputComponents = await this.createOutputComponents(
+            this._outputs
+          );
+          Log.log(
+            `[FusionService] ComponentOutputs ready: count=${outputComponents.length}`
+          );
+
+          Log.log("fubar 28");
+
+          // -- Determine Blank Component Count --
+          const numBlanks =
+            this._numComponents -
+            inputComponents.length -
+            outputComponents.length;
+          Log.log(`[FusionService] numBlanks=${numBlanks}`);
+
+          if (numBlanks < 0) {
+            throw new Error(
+              `[FusionService] Component overflow: have ${
+                inputComponents.length + outputComponents.length
+              }, but only ${this._numComponents} slots`
+            );
+          }
+
+          Log.log("fubar 29...");
+
+          // Pre-generate salts for all components
+          const totalComponents =
+            inputComponents.length + outputComponents.length + numBlanks;
+          const randomSalts = Array.from({ length: totalComponents }, () =>
+            crypto.getRandomValues(new Uint8Array(32))
+          );
+
+          // ---- BEGIN DIAGNOSTIC LOGGING ---- //
+          Log.log("[FusionService] Inspecting inputs to genComponents...");
+
+          Log.log("numBlanks =", numBlanks);
+          Log.log("inputComponents.length =", inputComponents.length);
+          for (let i = 0; i < inputComponents.length; i++) {
+            const ic = inputComponents[i];
+            Log.log(
+              `[input ${i}] types: prev_txid: ${ic.prev_txid instanceof Uint8Array}, prev_index: ${typeof ic.prev_index}, pubkey: ${ic.pubkey instanceof Uint8Array}, amount: ${typeof ic.amount}`
+            );
+          }
+
+          Log.log("outputComponents.length =", outputComponents.length);
+          for (let i = 0; i < outputComponents.length; i++) {
+            const oc = outputComponents[i];
+            Log.log(
+              `[output ${i}] types: scriptpubkey: ${oc.scriptpubkey instanceof Uint8Array}, amount: ${typeof oc.amount}`
+            );
+          }
+
+          Log.log(
+            "randomSalts[0] type:",
+            randomSalts[0] instanceof Uint8Array,
+            "length:",
+            randomSalts[0].length
+          );
+          // ---- END DIAGNOSTIC LOGGING ---- //
+
+          // -- Call genComponents --
+          Log.log("prepare setup type check");
+
+          if (pedersenSetup == null) {
+            Log.log("pedersenSetup is null or undefined");
+          } else {
+            Log.log("typeof pedersenSetup:", typeof pedersenSetup);
+            Log.log("constructor name:", pedersenSetup.constructor.name);
+            Log.log("setup keys:", Object.keys(pedersenSetup));
+          }
+
+          Log.log("[FusionService] Calling genComponents...");
+          const generatedComponents = await this.genComponents(
+            pedersenSetup,
+            numBlanks,
+            inputComponents,
+            outputComponents,
+            this._componentFeerate,
+            randomSalts
+          );
+
+          // -- Log result --
+          Log.log("[FusionService] genComponents complete.");
+
+          Log.log(
+            `[FusionService] InitialCommitments count: ${generatedComponents.initialCommitments.length}`
+          );
+          Log.log(
+            `[FusionService] Total commitment amount: ${generatedComponents.totalAmount.toString()}`
+          );
+          Log.log(
+            `[FusionService] Pedersen nonce: ${Buffer.from(
+              generatedComponents.pedersenTotalNonce
+            ).toString("hex")}`
+          );
+          // Blind Signature Requests
+          Log.log(
+            "[FusionService] Starting blind signature request generation..."
+          );
+
+          const roundPubkey: Uint8Array = serverMsg.startround.roundPubkey;
+
+          // Log all blind nonce points (hex-encoded)
+          Log.log(
+            `[FusionService] Received ${this._blindNoncePoints.length} blind nonce points:`
+          );
+
+          try {
+            this._blindNoncePoints.forEach((point, index) => {
+              Log.log(
+                `[FusionService] blindNonce[${index}]: ${Buffer.from(point).toString("hex")}`
+              );
+            });
+          } catch (e) {
+            Log.log("SUMTHING BROKE ", e);
+          }
+
+          Log.log("FUBAR42a");
+          // Sanity check: number of nonce points must match number of components
+          if (
+            this._blindNoncePoints.length !==
+            generatedComponents.serializedComponents.length
+          ) {
+            Log.log("FUBAR42b");
+            throw new Error(
+              `Blind nonce count mismatch: expected ${generatedComponents.serializedComponents.length}, got ${this._blindNoncePoints.length}`
+            );
+          }
+
+          Log.log("FUBAR42c");
+          // Generate blind signature requests
+          const blindSigRequests: BlindSignatureRequest[] = [];
+
+          Log.log("FUBAR42d");
+          for (
+            let i = 0;
+            i < generatedComponents.serializedComponents.length;
+            i++
+          ) {
+            Log.log("FUBAR42e");
+            const component = generatedComponents.serializedComponents[i];
+
+            Log.log("FUBAR42e2");
+            const noncePoint = this._blindNoncePoints[i];
+
+            Log.log("FUBAR42e3");
+            const messageHash = await sha256(component);
+
+            Log.log("FUBAR42e4");
+
+            Log.log("roundpubkey ", roundPubkey);
+            Log.log("---");
+            Log.log("type is ", typeof roundPubkey);
+
+            Log.log(
+              `[FusionService] roundPubkey = ${Buffer.from(roundPubkey).toString("hex")}`
+            );
+            Log.log(
+              `[FusionService] noncePoint[${i}] = ${Buffer.from(noncePoint).toString("hex")}`
+            );
+            Log.log(
+              `[FusionService] messageHash[${i}] = ${Buffer.from(messageHash).toString("hex")}`
+            );
+
+            Log.log(`typeof messageHash = ${typeof messageHash}`);
+            Log.log(
+              `Array.isArray(messageHash) = ${Array.isArray(messageHash)}`
+            );
+            Log.log(
+              `messageHash instanceof Uint8Array = ${messageHash instanceof Uint8Array}`
+            );
+
+            try {
+              Log.log("len of messagehash is ", messageHash.length);
+            } catch (e) {
+              Log.log("cant get len. with ", e);
+            }
+
+            const request = new BlindSignatureRequest(
+              roundPubkey,
+              noncePoint,
+              messageHash
+            );
+
+            Log.log("FUBAR42f");
+            blindSigRequests.push(request);
+
+            Log.log("FUBAR42g");
+          }
+
+          Log.log(`[FusionService] Finished blind signature setup.`);
+          Log.log(
+            `[FusionService] Built ${blindSigRequests.length} BlindSignatureRequest objects.`
+          );
+          Log.log("fubar 43");
+
+          continue;
         } else if (serverMsg.tierstatusupdate) {
           Log.log("Got TierStatusUpdate:", serverMsg.tierstatusupdate);
-          // This is where we could add logic to update tiers for UI.
-          // eslint-disable-next-line no-continue
+          Object.entries(serverMsg.tierstatusupdate.statuses).forEach(
+            ([tier, status]) => {
+              const { players, min_players, max_players, time_remaining } =
+                status;
+              // you can add handling here if needed
+            }
+          );
           continue;
         } else {
           Log.error("Unknown ServerMessage type:", serverMsg);
-          // eslint-disable-next-line no-continue
           continue;
         }
       } catch (err) {
         Log.error("Error decoding ServerMessage:", err);
-        // eslint-disable-next-line no-continue
         continue;
       }
     }
   }
-  /* eslint-enable no-await-in-loop */
+
+  // END REGISTER AND WAIT
+
   /* eslint-enable no-constant-condition, no-else-return */
-  //--------------------------------------------------------------
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   //--------------------------------------------------------------
-  //Assume Torboar.startTor() has already been called at app startup before doing startcovert.
 
   private static async _startCovert(params: {
+    covertDomain: string;
+    covertPort: number;
+    covertSsl: boolean;
     numComponents: number;
     tFusionBegin: number;
   }) {
-    const { numComponents, tFusionBegin } = params;
+    Log.log("fubar 10");
+    const { covertDomain, covertPort, covertSsl, numComponents, tFusionBegin } =
+      params;
 
-    const covert = new CovertSubmitter(numComponents);
+    Log.log("fubar 11");
 
-    // build circuits and spares
-    await covert.scheduleCircuits(Protocol.COVERT_CONNECT_SPARES);
+    const covert = new CovertSubmitter(
+      covertDomain,
+      covertPort,
+      covertSsl,
+      numComponents,
+      Protocol.COVERT_SUBMIT_WINDOW,
+      Protocol.COVERT_SUBMIT_TIMEOUT,
+      Torboar
+    );
 
-    // wait until just before fusion begin time
+    covert.startHealthMonitor();
+    Log.log("fubar 12");
+
+    try {
+      Log.log(`zzz tFusionBegin (${typeof tFusionBegin}):`, tFusionBegin);
+      Log.log(
+        `zzz COVERT_CONNECT_WINDOW (${typeof Protocol.COVERT_CONNECT_WINDOW}):`,
+        Protocol.COVERT_CONNECT_WINDOW
+      );
+      Log.log(
+        `zzz COVERT_CONNECT_SPARES (${typeof Protocol.COVERT_CONNECT_SPARES}):`,
+        Protocol.COVERT_CONNECT_SPARES
+      );
+      Log.log(
+        `zzz COVERT_CONNECT_TIMEOUT (${typeof Protocol.COVERT_CONNECT_TIMEOUT}):`,
+        Protocol.COVERT_CONNECT_TIMEOUT
+      );
+
+      // Fire-and-forget (no await)
+
+      // eslint-disable-next-line no-void
+      void covert
+        .scheduleConnections(
+          tFusionBegin,
+          Protocol.COVERT_CONNECT_WINDOW,
+          Protocol.COVERT_CONNECT_SPARES,
+          Protocol.COVERT_CONNECT_TIMEOUT
+        )
+        .catch((err) => {
+          Log.log("zzz scheduleConnections threw:", err);
+        });
+    } catch (outerErr) {
+      Log.log("zzz scheduleConnections outer try block threw:", outerErr);
+    }
+
     const tend =
       tFusionBegin + (Protocol.WARMUP_TIME - Protocol.WARMUP_SLOP - 1);
 
-    /* eslint-disable no-await-in-loop */
     while (Date.now() / 1000 < tend) {
+      const numConnected = covert.connectedCount;
+      const numSpareConnected = covert.spareCount;
       Log.log(
-        `Circuits ready (${covert.connectedCount}+${covert.spareCount} out of ${numComponents})`
+        `Setting up Tor connections (${numConnected}+${numSpareConnected} out of ${numComponents})`
       );
-      // wait 1 second between status updates
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 1000);
-      });
+
+      covert.checkOk?.();
+      // optionally: this.checkStop();
+      // optionally: this.checkCoins();
+      // eslint-disable-next-line no-promise-executor-return
+      await new Promise<void>((r) => setTimeout(r, 1000));
     }
-    /* eslint-enable no-await-in-loop */
 
     return covert;
   }
@@ -659,7 +1746,6 @@ export class FusionService {
 
   private async _startFusionRound(): Promise<void> {
     Log.log("Starting fusion round...");
-
     const allUtxos = await this._grabWalletUtxos();
     const selectedUtxos = FusionService._selectRandomUtxos(allUtxos, 0.5);
     Log.log("Selected UTXOs:", selectedUtxos);
@@ -680,6 +1766,23 @@ export class FusionService {
     // After the server handshake, but before registering for tiers, we need to allocate outputs.
 
     this.availableTiers = serverHello.tiers;
+    Log.log("AVAILABLE TIERS from server:");
+    Log.log("[FusionService] ===== ServerHello Info =====");
+    Log.log("[FusionService] Available Tiers:", this.availableTiers.join(", "));
+    Log.log("[FusionService] Number of Tiers:", this.availableTiers.length);
+    Log.log(
+      "[FusionService] Raw Tier Array:",
+      JSON.stringify(this.availableTiers)
+    );
+    Log.log(
+      "[FusionService] component_feerate =",
+      serverHello.componentFeerate
+    );
+    Log.log("[FusionService] num_components =", serverHello.numComponents);
+    Log.log("[FusionService] min_excess_fee =", serverHello.minExcessFee);
+    Log.log("[FusionService] max_excess_fee =", serverHello.maxExcessFee);
+    Log.log("[FusionService] =============================");
+
     this.coins = new Map<string, [string, number]>(); // rebuild coins map from selectedUtxos
 
     selectedUtxos.forEach((utxo) => {
