@@ -2,9 +2,6 @@ import { App } from "@capacitor/app";
 import ReactDOM from "react-dom/client";
 import { SplashScreen } from "@capacitor/splash-screen";
 
-// Import TOR capacitor pluign
-import { Torboar } from "torboar";
-
 import LogService from "@/services/LogService";
 import JanitorService from "@/services/JanitorService";
 import DatabaseService from "@/services/DatabaseService";
@@ -16,27 +13,6 @@ import Main from "@/Main";
 // eslint-disable-next-line react-refresh/only-export-components
 const Log = LogService("init");
 
-async function initTorboar() {
-  try {
-    await Torboar.startTor();
-    console.log("Torboar started successfully from init.");
-
-    const res1 = await Torboar.makeRequestThroughCircuit({
-      circuitKey: "circuitA",
-      url: "http://google.com",
-    });
-    console.log("Circuit A response:", res1.response);
-
-    const res2 = await Torboar.makeRequestThroughCircuit({
-      circuitKey: "circuitB",
-      url: "http://chess.com",
-    });
-    console.log("Circuit B response:", res2.response);
-  } catch (err) {
-    console.error("Error using Torboar:", err);
-  }
-}
-
 // big green START button for the whole app
 async function initialize_app() {
   Log.time("INIT");
@@ -44,9 +20,6 @@ async function initialize_app() {
   await app_init();
   await post_init();
   Log.timeEnd("INIT");
-
-  // Start Torboar (test for now)
-  initTorboar();
 } // end initialize_app()
 
 await initialize_app();

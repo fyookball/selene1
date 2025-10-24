@@ -4,6 +4,8 @@ export const Protocol = {
   // Identifiers
   FUSE_ID: new Uint8Array([0x46, 0x55, 0x5a, 0x00]), // 'FUZ\x00'
   MIN_OUTPUT: 10000,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  MAGIC: "765be8b4e4396dcf",
 
   // Some essentials:
   MAX_COMPONENT_FEERATE: 5000,
@@ -11,6 +13,9 @@ export const Protocol = {
   MIN_TX_COMPONENTS: 11,
   MAX_EXCESS_FEE: 10000,
   MAX_COMPONENTS: 40,
+  MAX_FEE: 45000,
+  COMPONENT_SIZE_INPUT: 3,
+  COMPONENT_SIZE_OUTPUT: 3,
 
   // Covert connection timeouts
   COVERT_CONNECT_TIMEOUT: 15.0,
@@ -35,4 +40,18 @@ export const Protocol = {
   // Blame and non-critical timing
   STANDARD_TIMEOUT: 3.0,
   BLAME_VERIFY_TIME: 5.0,
+
+  // --- secp256k1 constants ---
+  /** Curve order `n` */
+  SECP256K1_ORDER: BigInt(
+    "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
+  ),
+
+  /** Generator point G (uncompressed) */
+  SECP256K1_G_HEX:
+    "0479BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8",
+
+  SECP256K1_FIELD_SIZE: BigInt(
+    "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f"
+  ),
 };
